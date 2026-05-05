@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="config.js"></script>
+  <meta charset="UTF-8">
+  <title>TestedCloud Hybrid Lab</title>
+</head>
+
+<body style="font-family: Arial; text-align: center; margin-top: 50px;">
+
+<h1>🚀 TestedCloud Hybrid Lab</h1>
+<p>On-prem NUC → Pub/Sub → Cloud Run → BigQuery</p>
+
+<button onclick="sendEvent()" style="padding: 15px; font-size: 16px;">
+  Send Event
+</button>
+
+<p id="status"></p>
+<div id="details" style="margin-top:20px; font-size:14px;"></div>
+
+<script>
+async function sendEvent() {
+  document.getElementById("status").innerText = "Sending event...";
+  document.getElementById("details").innerHTML = "";
+
+  try {
+    const response = await fetch("/api/send-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": window.TESTEDCLOUD_CONFIG?.API_KEY || "replace-me"
+      },
+      body: JSON.stringify({
+        source: "web-ui",
+        event_type: "button_click",
+        message: "Event from TestedCloud UI"
+      })
+    });
+
+    const data = await response.json();
+    console.log("API response:", data);
+
+    if (!data.event || !data.event.event_id) {
+      document.getElementById("status").innerText =
+        "⚠️ Event sent but unexpected response. Check console.";
+      return;
+    }
+
+    const eventId = data.event.event_id;
+
+    document.getElementById("status").innerText =
+      "⏳ Event sent. Waiting for processing...";
+
+    document.getElementById("details").innerHTML = `
+      <b>Event ID:</b> ${eventId} <br>
+      <b>Status:</b> Sent to Pub/Sub <br>
+    `;
+
+    // 🔁 Esperar y consultar trace
+    setTimeout(async () => {
+      try {
+        const traceResponse = await fetch("/api/trace-event/" + eventId, {
+	  method: "GET",
+	  headers: {
+	    "x-api-key": window.TESTEDCLOUD_CONFIG?.API_KEY || "replace-me"
+	  }
+	});
+
+        const traceData = await traceResponse.json();
+        console.log("Trace response:", traceData);
+
+        if (traceData.found) {
+          document.getElementById("status").innerText =
+            "✅ Event processed!";
+
+          document.getElementById("details").innerHTML = `
+            <b>Event ID:</b> ${eventId} <br>
+            <b>Latency:</b> ${traceData.event.latency_seconds}s <br>
+            <b>Target:</b> BigQuery <br>
+            <b>Source:</b> web-ui <br>
+            <b>Type:</b> button_click
+          `;
+        } else {
+          document.getElementById("status").innerText =
+            "⏳ Still processing...";
+
+          document.getElementById("details").innerHTML = `
+            <b>Event ID:</b> ${eventId} <br>
+            <b>Status:</b> Not yet in BigQuery
+          `;
+        }
+
+      } catch (traceError) {
+        console.error("Trace error:", traceError);
+      }
+    }, 3000);
+
+  } catch (error) {
+    console.error("UI ERROR:", error);
+    document.getElementById("status").innerText =
+      "❌ UI error after request. Check Console for details.";
+  }
+}
+</script>
+
+</body>
+</html>
