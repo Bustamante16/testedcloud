@@ -1,0 +1,25 @@
+TestedCloud Cloudflare Access Validation
+
+Protected application: ui.testedcloud.com
+Access layer: Cloudflare Access
+Protected external URL: https://ui.testedcloud.com
+Local lab port: 8082
+Local access path: http://localhost:8082/
+
+Validation results:
+- Access through protected domain: Successful
+- Cloudflare Access authentication required: Yes
+- Direct public port forwarding to local port 8082: Removed
+- Direct public IP access to local lab port 8082: Not available
+- Protected UI remained functional after removing public port forwarding: Yes
+- On-prem UI/API continued publishing events to Google Cloud pipeline: Yes
+
+Security conclusion:
+The lab UI is no longer exposed through direct public router port forwarding.
+External access is intended to go through Cloudflare Access using ui.testedcloud.com.
+
+Notes:
+This evidence file is intentionally sanitized.
+It does not include Cloudflare account IDs, tunnel secrets, tokens, public IP addresses, private IP addresses, or authentication details.
+
+Status: Validated
