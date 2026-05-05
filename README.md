@@ -2,7 +2,7 @@
 
 TestedCloud is a hybrid cloud portfolio lab designed to demonstrate how on-prem infrastructure can securely integrate with Google Cloud services for event ingestion, serverless processing, analytics, observability, IAM hardening, private networking, and cost-conscious operations.
 
-The project connects an on-prem Ubuntu/Docker environment running on an Intel NUC with Google Cloud services including Pub/Sub, Cloud Run, BigQuery, Looker Studio, custom VPC networking, private VM access through IAP, and Cloudflare Access for protected external access.
+The project connects an on-prem Ubuntu/Docker environment running on an Intel NUC with Google Cloud services including Pub/Sub, Cloud Run, BigQuery, Looker Studio, custom VPC networking, private VM access through IAP, Cloudflare Access for protected external access, and Cloud Monitoring alert policies for key operational failure modes.
 
 ## 1\. Purpose
 
@@ -14,13 +14,13 @@ TestedCloud was built to translate industrial networking, secure infrastructure,
 * Hybrid Cloud Engineer
 * Infrastructure / Platform Engineer
 
-The lab demonstrates not only a working cloud pipeline, but also the supporting architecture documentation, validation evidence, troubleshooting history, IAM hardening, cost governance, and operational runbooks.
+The lab demonstrates not only a working cloud pipeline, but also the supporting architecture documentation, validation evidence, troubleshooting history, IAM hardening, monitoring alerts, cost governance, and operational runbooks.
 
 ## 2\. Portfolio Narrative
 
 The main narrative of TestedCloud is:
 
-> I built TestedCloud to bridge my background in industrial infrastructure, secure networking, and on-prem systems with modern Google Cloud architecture. The platform demonstrates how on-prem workloads can integrate with cloud-native services for event ingestion, serverless processing, analytics, observability, IAM hardening, private networking, and operational troubleshooting.
+> I built TestedCloud to bridge my background in industrial infrastructure, secure networking, and on-prem systems with modern Google Cloud architecture. The platform demonstrates how on-prem workloads can integrate with cloud-native services for event ingestion, serverless processing, analytics, observability, IAM hardening, private networking, operational troubleshooting, and cost-aware operations.
 
 Final positioning:
 
@@ -101,6 +101,7 @@ Docker services:
 |Cloud Run service|`testedcloud-consumer`|
 |BigQuery dataset|`testedcloud\_events`|
 |BigQuery table|`hybrid\_events`|
+|Monitoring alerts|Cloud Run 5xx, Pub/Sub backlog, DLQ messages|
 
 ### Networking
 
@@ -127,6 +128,7 @@ TestedCloud demonstrates the following architecture areas:
 * Dedicated service accounts by workload responsibility
 * Pub/Sub OIDC push authentication to Cloud Run
 * Dead-letter queue failure handling
+* Cloud Monitoring alerts for operational failure modes
 * Private VPC design
 * Private VM access through IAP
 * Cloudflare Access protection for external UI
@@ -149,6 +151,7 @@ Implemented security improvements:
 * Frontend API key was moved out of committed frontend source.
 * Local sensitive config files are excluded through `.gitignore`.
 * A sanitized `docker-compose.example.yml` is provided instead of committing the real local Compose file.
+* Monitoring policy definitions are versioned with notification channel IDs redacted.
 
 ## 7\. Validated Outcomes
 
@@ -170,8 +173,17 @@ The following outcomes have been validated and documented:
 |Cloudflare Access protection|Validated|
 |Public port forwarding bypass removed|Validated|
 |`/api/health` endpoint routing|Validated|
+|Cloud Monitoring alert policies|Configured|
 |Billing project link sanitized|Validated|
 |Budget alert strategy|Documented|
+
+Configured Cloud Monitoring alerts:
+
+|Alert Policy|Status|
+|-|-|
+|`TestedCloud - Cloud Run 5xx errors`|Enabled|
+|`TestedCloud - Pub/Sub consumer backlog`|Enabled|
+|`TestedCloud - DLQ messages detected`|Enabled|
 
 ## 8\. Observed Metrics
 
@@ -211,6 +223,7 @@ Current observed analytics metrics include:
 |[`docs/operations/local-runbook.md`](docs/operations/local-runbook.md)|How to run the local lab safely and reproducibly|
 |[`docs/operations/dlq-validation.md`](docs/operations/dlq-validation.md)|Pub/Sub DLQ failure-path validation|
 |[`docs/operations/troubleshooting-log.md`](docs/operations/troubleshooting-log.md)|Troubleshooting history and lessons learned|
+|[`docs/operations/monitoring-alerts.md`](docs/operations/monitoring-alerts.md)|Cloud Monitoring alert strategy and operational response model|
 
 ### Cost and Governance
 
@@ -225,6 +238,14 @@ Current observed analytics metrics include:
 |-|-|
 |[`docs/evidence/README.md`](docs/evidence/README.md)|Evidence collection strategy and command index|
 |`docs/evidence/\*.txt`|Sanitized command outputs and validation evidence|
+
+### Monitoring Policy Definitions
+
+|File|Description|
+|-|-|
+|[`monitoring/policies/cloud-run-5xx-alert.json`](monitoring/policies/cloud-run-5xx-alert.json)|Sanitized Cloud Run 5xx alert policy definition|
+|[`monitoring/policies/pubsub-backlog-alert.json`](monitoring/policies/pubsub-backlog-alert.json)|Sanitized Pub/Sub backlog alert policy definition|
+|[`monitoring/policies/dlq-message-alert.json`](monitoring/policies/dlq-message-alert.json)|Sanitized DLQ message alert policy definition|
 
 ## 10\. Evidence Examples
 
@@ -242,8 +263,10 @@ The `docs/evidence` folder includes sanitized evidence for:
 * Budget alert plan
 * Cloudflare Access validation
 * API health endpoint validation
+* Monitoring alert plan
+* Configured Cloud Monitoring alert policies
 
-Sensitive information such as API keys, billing account IDs, Cloudflare tokens, private keys, and real local runtime configuration is intentionally excluded or sanitized.
+Sensitive information such as API keys, billing account IDs, Cloudflare tokens, notification channel IDs, private keys, and real local runtime configuration is intentionally excluded or sanitized.
 
 ## 11\. Local Development
 
@@ -314,6 +337,7 @@ The repository intentionally avoids committing:
 * API keys
 * Cloudflare secrets
 * OAuth tokens
+* notification channel IDs
 * private keys
 
 Before committing changes, run:
@@ -340,7 +364,7 @@ Known limitations and future improvements:
 
 |Item|Status|
 |-|-|
-|Monitoring alerts|Not fully configured|
+|Cloud Monitoring alerts|Configured for Cloud Run 5xx, Pub/Sub backlog, and DLQ messages|
 |Budget alert actual console status|Planned / documented|
 |Secret management|Needs improvement|
 |API key model|Improved but still simple|
@@ -423,11 +447,11 @@ Future roadmap:
 
 A concise explanation:
 
-> TestedCloud is a hybrid cloud portfolio lab I built to demonstrate how on-prem workloads can securely integrate with Google Cloud. The on-prem side runs on an Ubuntu-based Intel NUC using Docker Compose. Events from the local UI/API are published to Pub/Sub, processed by Cloud Run, stored in BigQuery, and visualized through dashboard views. I also implemented Cloudflare Access, IAM hardening, Pub/Sub OIDC authentication, DLQ validation, private VPC networking, IAP SSH access, cost documentation, and evidence-based validation.
+> TestedCloud is a hybrid cloud portfolio lab I built to demonstrate how on-prem workloads can securely integrate with Google Cloud. The on-prem side runs on an Ubuntu-based Intel NUC using Docker Compose. Events from the local UI/API are published to Pub/Sub, processed by Cloud Run, stored in BigQuery, and visualized through dashboard views. I also implemented Cloudflare Access, IAM hardening, Pub/Sub OIDC authentication, DLQ validation, private VPC networking, IAP SSH access, Cloud Monitoring alerts, cost documentation, and evidence-based validation.
 
 A more technical version:
 
-> The platform demonstrates event-driven hybrid integration using Pub/Sub and Cloud Run, with BigQuery as the analytics layer. I separated service identities using dedicated service accounts, removed broad permissions from the default Compute Engine service account, configured Pub/Sub push with OIDC authentication, validated failure handling through a DLQ, and documented evidence for Cloud Run identity, Pub/Sub config, BigQuery records, private networking, IAP firewall rules, and Cloudflare Access protection.
+> The platform demonstrates event-driven hybrid integration using Pub/Sub and Cloud Run, with BigQuery as the analytics layer. I separated service identities using dedicated service accounts, removed broad permissions from the default Compute Engine service account, configured Pub/Sub push with OIDC authentication, validated failure handling through a DLQ, and configured Cloud Monitoring alerts for Cloud Run 5xx errors, Pub/Sub backlog, and DLQ messages. I also documented evidence for Cloud Run identity, Pub/Sub config, BigQuery records, private networking, IAP firewall rules, Cloudflare Access protection, and monitoring policy configuration.
 
 ## 16\. Final Positioning
 
@@ -444,5 +468,5 @@ TestedCloud demonstrates practical Google Cloud architecture across:
 * Troubleshooting
 * Portfolio-grade documentation
 
-It is designed to show the ability to build, secure, validate, document, and explain a realistic cloud architecture from end to end.
+It is designed to show the ability to build, secure, validate, monitor, document, and explain a realistic cloud architecture from end to end.
 

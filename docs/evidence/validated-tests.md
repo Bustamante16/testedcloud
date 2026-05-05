@@ -14,6 +14,7 @@ This file complements the detailed documentation stored in:
 * `docs/security/cloudflare-access.md`
 * `docs/operations/dlq-validation.md`
 * `docs/operations/troubleshooting-log.md`
+* `docs/operations/monitoring-alerts.md`
 * `docs/cost/cost-considerations.md`
 * `docs/cost/budget-alerts.md`
 * `docs/evidence/README.md`
@@ -37,6 +38,9 @@ This file complements the detailed documentation stored in:
 |13|Billing is enabled for the project|Validated|`billing-project-link.txt`|
 |14|Budget alert strategy documented|Documented|`budget-alerts.md`, `budget-alerts-config.txt`|
 |15|Cost considerations documented|Documented|`cost-considerations.md`|
+|16|`/api/health` endpoint works through NGINX reverse proxy|Validated|`api-health-validation.txt`|
+|17|Cloud Monitoring alert strategy documented|Documented|`monitoring-alerts.md`, `monitoring-alerts-plan.txt`|
+|18|Cloud Monitoring alert policies configured|Configured|`monitoring-alerts-config.txt`, `monitoring/policies/\*.json`|
 
 ## 3\. End-to-End Pipeline Validation
 
@@ -497,7 +501,95 @@ Captured evidence states:
 
 This demonstrates practical access security and remediation of a bypass path.
 
-## 14\. Billing Project Validation
+## 14\. API Health Endpoint Validation
+
+### Test Objective
+
+Validate that the local NGINX reverse proxy exposes the backend health endpoint through:
+
+```text
+/api/health
+```
+
+### Endpoint
+
+```text
+http://localhost:8082/api/health
+```
+
+### Status
+
+```text
+Validated
+```
+
+### Evidence
+
+```text
+docs/evidence/api-health-validation.txt
+```
+
+### Validation Result
+
+Captured evidence shows:
+
+```json
+{
+  "health": "healthy",
+  "node": "on-prem-nuc",
+  "gcp\_project": "majestic-layout-255620",
+  "pubsub\_topic": "testedcloud-events"
+}
+```
+
+### Portfolio Value
+
+This demonstrates operational readiness and provides a simple health signal for monitoring and troubleshooting.
+
+## 15\. Cloud Monitoring Alert Policies Validation
+
+### Test Objective
+
+Validate that real Cloud Monitoring alert policies were created and enabled for key operational failure modes.
+
+### Configured Alerts
+
+|Alert Policy|Status|
+|-|-|
+|`TestedCloud - Cloud Run 5xx errors`|Enabled|
+|`TestedCloud - Pub/Sub consumer backlog`|Enabled|
+|`TestedCloud - DLQ messages detected`|Enabled|
+
+### Status
+
+```text
+Configured
+```
+
+### Evidence
+
+```text
+docs/evidence/monitoring-alerts-config.txt
+monitoring/policies/cloud-run-5xx-alert.json
+monitoring/policies/pubsub-backlog-alert.json
+monitoring/policies/dlq-message-alert.json
+```
+
+### Validation Result
+
+The alert policies were created in Google Cloud Monitoring and listed as enabled.
+
+The local JSON policy definitions were sanitized before commit by replacing the real notification channel ID with:
+
+```text
+projects/majestic-layout-255620/notificationChannels/REDACTED
+```
+
+### Portfolio Value
+
+This demonstrates operational observability beyond manual validation. The lab now has alert coverage for processing failures, backlog growth, and DLQ activity.
+
+## 16\. Billing Project Validation
 
 ### Test Objective
 
@@ -535,7 +627,7 @@ projectId: majestic-layout-255620
 
 This supports the cost governance documentation without exposing the real billing account ID.
 
-## 15\. Budget Alert Evidence
+## 17\. Budget Alert Evidence
 
 ### Test Objective
 
@@ -571,7 +663,7 @@ Notifications: Email enabled
 
 This demonstrates financial governance and cost-awareness.
 
-## 16\. Validation Coverage Map
+## 18\. Validation Coverage Map
 
 |Area|Validated?|Notes|
 |-|-|-|
@@ -587,39 +679,38 @@ This demonstrates financial governance and cost-awareness.
 |Public port forwarding removal|Yes|Bypass path removed|
 |Private VPC|Yes|Private VM in custom VPC|
 |IAP SSH firewall|Yes|IAP source range and TCP/22 configured|
+|API health endpoint|Yes|`/api/health` routed through NGINX and validated|
+|Cloud Monitoring alerts|Yes|Cloud Run 5xx, Pub/Sub backlog, and DLQ alerts configured|
 |Billing enabled|Yes|Billing evidence sanitized|
 |Budget alerts|Planned / documented|Evidence file created|
-|Monitoring alerts|Not yet|Future improvement|
-|`/api/health` endpoint|Not yet|Future improvement|
-|Secret management improvement|Not yet|Future improvement|
+|Secret management improvement|Partially|Frontend local config excluded from Git; future Secret Manager improvement still planned|
+|Public landing page|Not yet|Future improvement|
 
-## 17\. Current Open Validation Items
+## 19\. Current Open Validation Items
 
 The following items are not yet fully validated or implemented:
 
 |Item|Status|Next Step|
 |-|-|-|
-|`/api/health` endpoint|Not implemented|Add API endpoint and validate with curl|
-|Monitoring alerts|Not configured|Add alerts for Cloud Run 5xx, Pub/Sub backlog, DLQ count|
 |Budget alert actual console config|Planned / partially documented|Configure in Console and update evidence status|
-|Secret management|Needs improvement|Move sensitive values out of frontend-exposed code|
+|Secret management|Needs improvement|Move sensitive values out of frontend-exposed code and evaluate Secret Manager|
 |Dashboard final polish|In progress|Improve Looker Studio presentation|
 |Public landing page|Not complete|Build `testedcloud.com` portfolio page|
 |Industrial telemetry module|Planned|Add SINEC NMS / SNMP / syslog later|
 |BGP hybrid lab|Planned|Build routing-focused lab later|
 |Vertex AI analytics|Planned|Add after budget alerts and monitoring controls|
 
-## 18\. Interview Explanation
+## 20\. Interview Explanation
 
 A concise way to explain the validation work:
 
-> I created a validation index for TestedCloud so the project is backed by evidence, not only architecture diagrams. The validations include the end-to-end pipeline from on-prem UI/API to Pub/Sub, Cloud Run, and BigQuery; IAM hardening with dedicated service accounts; Pub/Sub OIDC authentication; DLQ failure handling; private VM and IAP access; Cloudflare Access protection; and cost governance evidence.
+> I created a validation index for TestedCloud so the project is backed by evidence, not only architecture diagrams. The validations include the end-to-end pipeline from on-prem UI/API to Pub/Sub, Cloud Run, and BigQuery; IAM hardening with dedicated service accounts; Pub/Sub OIDC authentication; DLQ failure handling; private VM and IAP access; Cloudflare Access protection; API health validation; Cloud Monitoring alerts; and cost governance evidence.
 
 A more technical version:
 
-> Each major architecture decision has a corresponding validation artifact. For example, Cloud Run runtime identity is backed by a service account output, Pub/Sub OIDC and DLQ behavior are backed by subscription configuration, BigQuery processing is backed by query output, private networking is backed by VM and firewall outputs, and Cloudflare Access is backed by a sanitized validation file. This makes the portfolio more defensible in a technical interview.
+> Each major architecture decision has a corresponding validation artifact. For example, Cloud Run runtime identity is backed by a service account output, Pub/Sub OIDC and DLQ behavior are backed by subscription configuration, BigQuery processing is backed by query output, private networking is backed by VM and firewall outputs, Cloudflare Access is backed by a sanitized validation file, and monitoring is backed by enabled alert policy evidence plus sanitized JSON policy definitions. This makes the portfolio more defensible in a technical interview.
 
-## 19\. Customer Engineer Relevance
+## 21\. Customer Engineer Relevance
 
 This validation index is relevant to Customer Engineer and Cloud Architect roles because it demonstrates the ability to:
 
@@ -628,14 +719,15 @@ This validation index is relevant to Customer Engineer and Cloud Architect roles
 * Document operational outcomes
 * Explain security improvements clearly
 * Connect implementation evidence to customer-facing architecture narratives
-* Think across networking, IAM, serverless, analytics, cost, and operations
+* Think across networking, IAM, serverless, analytics, cost, monitoring, and operations
 * Communicate technical work in a structured and reviewable way
 
-## 20\. Final Positioning
+## 22\. Final Positioning
 
 The validated tests show that TestedCloud is not only a conceptual architecture.
 
-It is a working hybrid cloud lab with documented evidence across event ingestion, serverless processing, analytics, IAM, private networking, secure access, troubleshooting, and cost governance.
+It is a working hybrid cloud lab with documented evidence across event ingestion, serverless processing, analytics, IAM, private networking, secure access, troubleshooting, monitoring, and cost governance.
 
-This strengthens the portfolio by making the project verifiable, explainable, and defensible.
+This strengthens the portfolio by making the project verifiable, explainable, observable, and defensible.
+
 
