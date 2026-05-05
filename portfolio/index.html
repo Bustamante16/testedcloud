@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TestedCloud — Hybrid Cloud Architecture Lab</title>
+  <meta name="description" content="TestedCloud is a hybrid cloud portfolio lab demonstrating on-prem integration with Google Cloud using Pub/Sub, Cloud Run, BigQuery, IAM hardening, private networking, Cloudflare Access, and monitoring." />
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #111936;
+      --card-soft: #151f42;
+      --text: #eef3ff;
+      --muted: #aab6d3;
+      --accent: #7cc7ff;
+      --accent-2: #9ef0c0;
+      --border: rgba(255,255,255,0.12);
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(124,199,255,0.20), transparent 35%),
+        radial-gradient(circle at top right, rgba(158,240,192,0.14), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      width: min(1120px, 92%);
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,16,32,0.72);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-size: 1.1rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 0.95rem;
+    }
+
+    .hero {
+      padding: 92px 0 64px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent-2);
+      background: rgba(255,255,255,0.05);
+      font-size: 0.9rem;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      line-height: 1.04;
+      margin: 0 0 20px;
+      letter-spacing: -2px;
+    }
+
+    .hero p {
+      max-width: 820px;
+      font-size: 1.24rem;
+      color: var(--muted);
+      margin: 0 0 32px;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 13px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #061020;
+      border: none;
+    }
+
+    section {
+      padding: 54px 0;
+    }
+
+    h2 {
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      margin: 0 0 18px;
+      letter-spacing: -0.7px;
+    }
+
+    .section-intro {
+      color: var(--muted);
+      max-width: 780px;
+      margin-bottom: 28px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+    }
+
+    .card p, .card li {
+      color: var(--muted);
+    }
+
+    .card ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    .architecture {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 26px;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 12px;
+      align-items: center;
+      min-width: 820px;
+    }
+
+    .node {
+      padding: 16px;
+      border-radius: 18px;
+      background: var(--card-soft);
+      border: 1px solid var(--border);
+      text-align: center;
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 1.4rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .metric {
+      padding: 22px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid var(--border);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 2rem;
+      color: var(--accent-2);
+      margin-bottom: 4px;
+    }
+
+    .metric span {
+      color: var(--muted);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid var(--border);
+    }
+
+    .phase {
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+
+    footer {
+      padding: 42px 0;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 7px;
+      color: var(--accent-2);
+    }
+
+    @media (max-width: 860px) {
+      .grid.three,
+      .grid.two,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 62px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="brand">TestedCloud</div>
+        <div class="nav-links">
+          <a href="#architecture">Architecture</a>
+          <a href="#security">Security</a>
+          <a href="#monitoring">Monitoring</a>
+          <a href="#evidence">Evidence</a>
+          <a href="#roadmap">Roadmap</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="eyebrow">Hybrid Cloud Portfolio Lab · On-prem + Google Cloud</div>
+        <h1>Secure on-prem integration with cloud-native analytics.</h1>
+        <p>
+          TestedCloud is a hands-on hybrid cloud architecture lab that connects an on-prem Docker environment
+          running on an Intel NUC with Google Cloud services including Pub/Sub, Cloud Run, BigQuery,
+          private VPC networking, IAM hardening, Cloudflare Access, and Cloud Monitoring alerts.
+        </p>
+
+        <div class="cta-row">
+          <a class="btn primary" href="#architecture">View Architecture</a>
+          <a class="btn" href="#evidence">See Validated Outcomes</a>
+          <a class="btn" href="#roadmap">View Roadmap</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="container">
+        <h2>Architecture overview</h2>
+        <p class="section-intro">
+          The lab demonstrates an event-driven hybrid pattern: selected events originate on-prem,
+          move through Pub/Sub, are processed by Cloud Run, and land in BigQuery for analytics and dashboarding.
+        </p>
+
+        <div class="architecture">
+          <div class="flow">
+            <div class="node">On-prem<br>UI / API</div>
+            <div class="arrow">→</div>
+            <div class="node">Pub/Sub<br>testedcloud-events</div>
+            <div class="arrow">→</div>
+            <div class="node">Cloud Run<br>consumer</div>
+            <div class="arrow">→</div>
+            <div class="node">BigQuery<br>hybrid_events</div>
+            <div class="arrow">→</div>
+            <div class="node">Views +<br>Looker Studio</div>
+            <div class="arrow">↘</div>
+            <div class="node">Monitoring<br>Alerts</div>
+          </div>
+        </div>
+
+        <div class="grid three" style="margin-top: 22px;">
+          <div class="card">
+            <h3>On-prem layer</h3>
+            <p>Ubuntu Server on Intel NUC using Docker Compose with FastAPI, static frontend, and NGINX reverse proxy.</p>
+          </div>
+          <div class="card">
+            <h3>Cloud processing</h3>
+            <p>Pub/Sub push delivery to Cloud Run with authenticated invocation and BigQuery inserts.</p>
+          </div>
+          <div class="card">
+            <h3>Analytics layer</h3>
+            <p>BigQuery tables and views support latency metrics, event inspection, and dashboarding.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="security">
+      <div class="container">
+        <h2>Security and IAM hardening</h2>
+        <p class="section-intro">
+          TestedCloud was hardened beyond the prototype stage by separating service identities,
+          removing broad default permissions, and protecting external access.
+        </p>
+
+        <div class="grid two">
+          <div class="card">
+            <h3>Implemented controls</h3>
+            <ul>
+              <li>Cloud Run migrated to a dedicated runtime service account.</li>
+              <li>Default Compute Engine service account broad roles removed.</li>
+              <li>Pub/Sub invokes Cloud Run using OIDC authentication.</li>
+              <li>Private VM has no external IP and uses IAP SSH.</li>
+              <li>Cloudflare Access protects <code>ui.testedcloud.com</code>.</li>
+              <li>Direct public port forwarding bypass was removed.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Secret hygiene</h3>
+            <ul>
+              <li>Local <code>docker-compose.yml</code> is excluded from Git.</li>
+              <li>Frontend local <code>config.js</code> is excluded from Git.</li>
+              <li>Sanitized examples are committed for reproducibility.</li>
+              <li>Notification channel IDs are redacted in policy definitions.</li>
+              <li>Billing account details are sanitized in evidence files.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="monitoring">
+      <div class="container">
+        <h2>Monitoring and operational visibility</h2>
+        <p class="section-intro">
+          The lab includes real Cloud Monitoring alert policies for the most important operational failure modes.
+        </p>
+
+        <div class="grid three">
+          <div class="card">
+            <h3>Cloud Run 5xx errors</h3>
+            <p>Detects server-side failures in the Cloud Run event consumer.</p>
+          </div>
+          <div class="card">
+            <h3>Pub/Sub backlog</h3>
+            <p>Detects delayed or stuck messages in the main consumer subscription.</p>
+          </div>
+          <div class="card">
+            <h3>DLQ messages</h3>
+            <p>Detects failed messages routed to the dead-letter queue after retry exhaustion.</p>
+          </div>
+        </div>
+
+        <div class="metrics" style="margin-top: 22px;">
+          <div class="metric"><strong>424 ms</strong><span>p50 latency</span></div>
+          <div class="metric"><strong>5321 ms</strong><span>p95 latency</span></div>
+          <div class="metric"><strong>5890 ms</strong><span>p99 latency</span></div>
+          <div class="metric"><strong>72+</strong><span>validated events</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <div class="container">
+        <h2>Evidence-based validation</h2>
+        <p class="section-intro">
+          The project includes sanitized evidence files and versioned documentation to prove the architecture was implemented and validated.
+        </p>
+
+        <div class="grid three">
+          <div class="card">
+            <h3>Validated pipeline</h3>
+            <p>Events from the web UI and on-prem NUC were processed through Pub/Sub, Cloud Run, and BigQuery.</p>
+          </div>
+          <div class="card">
+            <h3>Failure handling</h3>
+            <p>A malformed payload was used to validate retry behavior and dead-letter queue routing.</p>
+          </div>
+          <div class="card">
+            <h3>Private networking</h3>
+            <p>Private VM, custom VPC, Private Google Access, and IAP firewall rule are documented with evidence.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <div class="container">
+        <h2>Roadmap</h2>
+        <p class="section-intro">
+          TestedCloud is designed as an expanding portfolio platform, starting with the Core Platform and growing into mobile, industrial telemetry, hybrid routing, and AI analytics.
+        </p>
+
+        <div class="timeline">
+          <div class="step">
+            <div class="phase">Phase 1</div>
+            <div>
+              <strong>Core Platform</strong><br>
+              Hybrid event ingestion, IAM hardening, Cloudflare Access, BigQuery analytics, evidence, monitoring alerts, and runbooks.
+            </div>
+          </div>
+          <div class="step">
+            <div class="phase">Phase 2</div>
+            <div>
+              <strong>Public portfolio site</strong><br>
+              Public landing page at <code>testedcloud.com</code> while keeping the operational lab protected at <code>ui.testedcloud.com</code>.
+            </div>
+          </div>
+          <div class="step">
+            <div class="phase">Phase 3</div>
+            <div>
+              <strong>TestedChat</strong><br>
+              Android/Firebase messaging app demonstrating Firebase Auth, Firestore, Cloud Run, Pub/Sub, BigQuery, and product analytics.
+            </div>
+          </div>
+          <div class="step">
+            <div class="phase">Phase 4</div>
+            <div>
+              <strong>Industrial telemetry</strong><br>
+              SINEC NMS, Ruggedcom/SCALANCE, SNMP, syslog, network events, and OT-to-cloud analytics.
+            </div>
+          </div>
+          <div class="step">
+            <div class="phase">Phase 5</div>
+            <div>
+              <strong>BGP and AI analytics</strong><br>
+              Hybrid routing lab, advanced analytics, BigQuery ML or Vertex AI experiments, and edge-to-cloud operational insights.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="card">
+          <h2>Positioning</h2>
+          <p>
+            TestedCloud demonstrates the ability to build, secure, validate, monitor, document,
+            and explain a realistic hybrid cloud architecture from end to end.
+          </p>
+          <p>
+            It connects industrial infrastructure experience with modern Google Cloud architecture patterns:
+            event ingestion, serverless processing, IAM, private networking, secure access, analytics,
+            monitoring, cost awareness, and operational troubleshooting.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      TestedCloud — Hybrid Cloud Architecture Lab · Public portfolio page for architecture storytelling.
+    </div>
+  </footer>
+</body>
+</html>
