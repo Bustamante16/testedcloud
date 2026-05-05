@@ -1,0 +1,8 @@
+Budget name: TestedCloud Lab Budget
+Project: majestic-layout-255620
+Billing account: XXXXXX-XXXXXX-XXXXXX
+Amount: $20/month
+Thresholds: 50%, 80%, 100%
+Notifications: Email enabled
+Created from: Google Cloud Console
+Status: Planned / To be configured
