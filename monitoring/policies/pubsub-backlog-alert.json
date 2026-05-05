@@ -1,0 +1,35 @@
+{
+  "displayName": "TestedCloud - Pub/Sub consumer backlog",
+  "documentation": {
+    "content": "Pub/Sub subscription testedcloud-consumer-sub has undelivered messages. Check Cloud Run health, Pub/Sub push delivery, OIDC invocation, and Cloud Run logs.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Pub/Sub undelivered messages on testedcloud-consumer-sub",
+      "conditionThreshold": {
+        "filter": "resource.type = \"pubsub_subscription\" AND resource.labels.subscription_id = \"testedcloud-consumer-sub\" AND metric.type = \"pubsub.googleapis.com/subscription/num_undelivered_messages\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_MEAN"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "300s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": [
+    "projects/majestic-layout-255620/notificationChannels/REDACTED"
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  }
+}

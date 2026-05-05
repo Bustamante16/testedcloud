@@ -1,0 +1,35 @@
+{
+  "displayName": "TestedCloud - DLQ messages detected",
+  "documentation": {
+    "content": "Dead-letter subscription testedcloud-events-dlq-sub has messages. Pull and inspect DLQ messages, check malformed payloads, Cloud Run errors, and schema validation.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "DLQ undelivered messages greater than zero",
+      "conditionThreshold": {
+        "filter": "resource.type = \"pubsub_subscription\" AND resource.labels.subscription_id = \"testedcloud-events-dlq-sub\" AND metric.type = \"pubsub.googleapis.com/subscription/num_undelivered_messages\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_MEAN"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "60s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": [
+    "projects/majestic-layout-255620/notificationChannels/REDACTED"
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  }
+}
