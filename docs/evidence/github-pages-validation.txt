@@ -23,3 +23,7 @@ Security / separation model:
 - The protected lab UI requires authorization through Cloudflare Access.
 
 Status: Validated
+
+HTTPS validation:
+- https://testedcloud.com returns a valid HTTPS response after GitHub Pages certificate provisioning.
+- ui.testedcloud.com continues to redirect to Cloudflare Access.
