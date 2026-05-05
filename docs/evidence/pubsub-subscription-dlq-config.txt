@@ -1,0 +1,17 @@
+ackDeadlineSeconds: 10
+deadLetterPolicy:
+  deadLetterTopic: projects/majestic-layout-255620/topics/testedcloud-events-dlq
+  maxDeliveryAttempts: 5
+expirationPolicy:
+  ttl: 2678400s
+messageRetentionDuration: 604800s
+name: projects/majestic-layout-255620/subscriptions/testedcloud-consumer-sub
+pushConfig:
+  oidcToken:
+    serviceAccountEmail: pubsub-cloudrun-invoker@majestic-layout-255620.iam.gserviceaccount.com
+  pushEndpoint: https://testedcloud-consumer-644725546932.us-central1.run.app/
+retryPolicy:
+  maximumBackoff: 60s
+  minimumBackoff: 10s
+state: ACTIVE
+topic: projects/majestic-layout-255620/topics/testedcloud-events
