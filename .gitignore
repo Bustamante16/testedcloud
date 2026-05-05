@@ -47,3 +47,6 @@ temp/
 
 # Frontend local runtime config
 frontend/config.js
+
+# Local Docker Compose runtime config
+docker-compose.yml
