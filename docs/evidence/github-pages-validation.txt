@@ -13,10 +13,13 @@ Validated behavior:
 - The landing page includes a button to open the protected lab UI.
 - Cloudflare root redirect to ui.testedcloud.com was removed or bypassed for the public landing page.
 - GitHub Pages deployment workflow completed successfully.
+- Cloudflare DNS root records point to GitHub Pages.
+- Cloudflare DNS record for ui.testedcloud.com remains separate from the root public portfolio domain.
 
 Security / separation model:
 - testedcloud.com is public.
 - ui.testedcloud.com remains protected by Cloudflare Access.
 - The public landing page does not expose secrets or operational credentials.
+- The protected lab UI requires authorization through Cloudflare Access.
 
 Status: Validated
