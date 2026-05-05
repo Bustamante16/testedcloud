@@ -1,0 +1,4 @@
+billingAccountName: billingAccounts/XXXXXX-XXXXXX-XXXXXX
+billingEnabled: true
+name: projects/majestic-layout-255620/billingInfo
+projectId: majestic-layout-255620
