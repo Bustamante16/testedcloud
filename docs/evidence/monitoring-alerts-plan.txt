@@ -1,0 +1,25 @@
+TestedCloud Monitoring Alerts Plan
+
+Project: majestic-layout-255620
+
+Planned / recommended alert policies:
+1. Cloud Run 5xx errors for testedcloud-consumer
+2. Pub/Sub backlog for testedcloud-consumer-sub
+3. DLQ message count for testedcloud-events-dlq-sub
+4. API health endpoint uptime check for /api/health
+5. Budget alerts at 50%, 80%, 100%
+
+Current status:
+- /api/health endpoint implemented and validated
+- Budget alert strategy documented
+- Alert policies planned / to be configured
+
+Recommended implementation order:
+1. Cloud Run 5xx alert
+2. Pub/Sub backlog alert
+3. DLQ message count alert
+4. Optional API health uptime check
+5. Capture sanitized alert configuration evidence
+
+Sanitization:
+This file does not include notification channel IDs, emails, tokens, private credentials, billing account IDs, or Cloudflare secrets.
