@@ -1,0 +1,14 @@
++--------------------------------------+---------------------+------------+--------------------------+-------------+---------------------+--------------------+
+|               event_id               |     received_at     |   source   |        event_type        |   origin    |    processed_at     |     user_email     |
++--------------------------------------+---------------------+------------+--------------------------+-------------+---------------------+--------------------+
+| 236426fa-7a20-4647-b087-aaa59688d5f6 | 2026-05-04 18:58:17 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:58:17 | user@example.com |
+| 64dcb62c-9434-468c-8994-84bd23b772ce | 2026-05-04 18:54:26 | onprem-nuc | post_editor_removal_test | on-prem-nuc | 2026-05-04 18:54:26 | unknown            |
+| b778e4a7-8e67-430f-87c7-0bee0a6e4dbc | 2026-05-04 18:54:20 | onprem-nuc | post_editor_removal_test | on-prem-nuc | 2026-05-04 18:54:20 | unknown            |
+| de2b67e8-1c71-43a3-8ee3-918917fef8d5 | 2026-05-04 18:54:04 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:54:05 | user@example.com |
+| 8cffe5e0-cbb5-45f7-8ef0-20e60cf14f46 | 2026-05-04 18:43:51 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:43:52 | user@example.com |
+| 4d7e9645-a265-4a07-aa8f-a7a6a8792708 | 2026-05-04 18:20:33 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:20:34 | user@example.com |
+| abd41b35-5efb-4efd-8e11-b84424210ad0 | 2026-05-04 18:20:17 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:20:19 | user@example.com |
+| bccb54df-ced5-4c65-8018-c85fd6cf59a2 | 2026-05-04 18:01:11 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:01:12 | unknown            |
+| 5e94bb22-53a2-4e7b-aef6-25ecb93943b0 | 2026-05-04 18:01:10 | web-ui     | button_click             | on-prem-nuc | 2026-05-04 18:01:10 | unknown            |
+| e146575c-bd36-43bc-97af-1d4706f94f83 | 2026-05-04 17:51:41 | onprem-nuc | verification_test        | on-prem-nuc | 2026-05-04 17:51:46 | unknown            |
++--------------------------------------+---------------------+------------+--------------------------+-------------+---------------------+--------------------+

@@ -1,0 +1,11 @@
+machineType: https://www.googleapis.com/compute/v1/projects/majestic-layout-255620/zones/us-central1-a/machineTypes/e2-micro
+name: testedcloud-vm-app-test
+networkInterfaces:
+- fingerprint: GQkmxsThd7M=
+  kind: compute#networkInterface
+  name: nic0
+  network: https://www.googleapis.com/compute/v1/projects/majestic-layout-255620/global/networks/testedcloud-vpc
+  networkIP: 10.10.1.2
+  stackType: IPV4_ONLY
+  subnetwork: https://www.googleapis.com/compute/v1/projects/majestic-layout-255620/regions/us-central1/subnetworks/testedcloud-subnet-app
+zone: https://www.googleapis.com/compute/v1/projects/majestic-layout-255620/zones/us-central1-a
