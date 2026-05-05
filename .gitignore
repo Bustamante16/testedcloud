@@ -1,0 +1,46 @@
+# Environment / secrets
+.env
+.env.*
+*.env
+secrets/
+credentials/
+keys/
+*.key
+*.pem
+*.json
+service-account*.json
+*gcp*.json
+*credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.next/
+.vite/
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Local temporary files
+tmp/
+temp/
