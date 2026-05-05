@@ -1,0 +1,1 @@
+{"health":"healthy","node":"on-prem-nuc","gcp_project":"majestic-layout-255620","pubsub_topic":"testedcloud-events"}
