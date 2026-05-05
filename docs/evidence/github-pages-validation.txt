@@ -1,0 +1,22 @@
+TestedCloud GitHub Pages Validation
+
+Public portfolio domain: https://testedcloud.com
+Hosting platform: GitHub Pages
+Source folder: portfolio/
+Deployment method: GitHub Actions
+Custom domain file: portfolio/CNAME
+Custom domain: testedcloud.com
+
+Validated behavior:
+- testedcloud.com loads the public portfolio landing page.
+- ui.testedcloud.com remains the protected operational lab UI.
+- The landing page includes a button to open the protected lab UI.
+- Cloudflare root redirect to ui.testedcloud.com was removed or bypassed for the public landing page.
+- GitHub Pages deployment workflow completed successfully.
+
+Security / separation model:
+- testedcloud.com is public.
+- ui.testedcloud.com remains protected by Cloudflare Access.
+- The public landing page does not expose secrets or operational credentials.
+
+Status: Validated
