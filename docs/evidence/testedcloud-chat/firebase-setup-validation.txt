@@ -1,0 +1,21 @@
+TestedCloud Chat Firebase Setup Validation
+
+Google Cloud project: majestic-layout-255620
+Firebase enabled: yes
+Android app registered: yes
+Android package name: com.testedcloud.chat
+Android app nickname: TestedCloud Chat
+Firebase Authentication enabled: yes
+Authentication provider: Email/Password
+Cloud Firestore enabled: yes
+Firestore mode: Production
+Firestore location: nam5
+Google Sign-In: not enabled yet
+Firebase App Check: planned / future hardening
+
+Configuration handling:
+- google-services.json downloaded locally
+- google-services.json must not be committed
+- service account keys must not be committed
+
+Status: Validated
