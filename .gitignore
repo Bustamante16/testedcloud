@@ -50,3 +50,16 @@ frontend/config.js
 
 # Local Docker Compose runtime config
 docker-compose.yml
+
+# TestedCloud Chat - Android/Firebase local config
+google-services.json
+GoogleService-Info.plist
+local.properties
+*.jks
+*.keystore
+
+# Firebase local cache / logs
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
