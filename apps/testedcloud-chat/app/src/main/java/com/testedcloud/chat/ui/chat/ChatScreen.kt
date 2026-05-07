@@ -27,6 +27,13 @@ import androidx.compose.ui.unit.dp
 import com.testedcloud.chat.data.conversations.ChatMessage
 import com.testedcloud.chat.data.conversations.ConversationRepository
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun ChatScreen(
@@ -124,21 +131,48 @@ private fun MessageCard(
     message: ChatMessage,
     isOwnMessage: Boolean
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text(
-                text = if (isOwnMessage) "You" else "Other user",
-                style = MaterialTheme.typography.labelMedium
-            )
+    val timeText = remember(message.createdAt) {
+        message.createdAt?.toDate()?.let { date ->
+            SimpleDateFormat("h:mm a", Locale.getDefault()).format(date)
+        } ?: ""
+    }
 
-            Text(
-                text = message.text,
-                style = MaterialTheme.typography.bodyLarge
-            )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            modifier = Modifier.widthIn(max = 300.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .background(
+                        if (isOwnMessage) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
+                    )
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = if (isOwnMessage) "You" else "Other user",
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                Text(
+                    text = message.text,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                if (timeText.isNotBlank()) {
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
