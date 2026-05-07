@@ -1,0 +1,21 @@
+TestedCloud Chat Firebase SDK Build Validation
+
+Development machine: Mac mini
+App: TestedCloud Chat
+Package name: com.testedcloud.chat
+
+Firebase SDK integration:
+- Firebase BOM added
+- Firebase Authentication dependency added
+- Cloud Firestore dependency added
+- Google Services Gradle plugin added
+- google-services.json placed locally
+- google-services.json ignored by Git
+
+Build command:
+./gradlew build
+
+Build result:
+Successful
+
+Status: Validated
