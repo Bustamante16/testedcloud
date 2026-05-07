@@ -1,0 +1,23 @@
+TestedCloud Chat Firestore User Profile Validation
+
+Development machine: Mac mini
+App: TestedCloud Chat
+Package name: com.testedcloud.chat
+
+Validated behavior:
+- User account can be created with Firebase Authentication.
+- Existing user can sign in with Firebase Authentication.
+- After authentication, a Firestore profile is created under users/{uid}.
+- Existing user sign-in updates lastLoginAt and updatedAt.
+- User profile uses Firebase Auth UID as document ID.
+- User profile includes uid, email, displayName, createdAt, lastLoginAt, updatedAt, and status.
+- google-services.json remains local and ignored by Git.
+
+Firestore path:
+users/{uid}
+
+Firestore rules:
+- Initial rules were published through Firebase Console.
+- CLI deployment is planned after Firebase CLI installation.
+
+Status: Validated
