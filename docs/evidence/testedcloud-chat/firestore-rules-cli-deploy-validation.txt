@@ -1,0 +1,21 @@
+TestedCloud Chat Firestore Rules CLI Deployment Validation
+
+Development machine: Mac mini
+Project: majestic-layout-255620
+
+Firebase CLI:
+- Installed: yes
+- Authenticated: yes
+
+Deployment files:
+- firebase.json
+- firebase/testedcloud-chat/firestore.rules
+- firebase/testedcloud-chat/firestore.indexes.json
+
+Validated behavior:
+- Firestore rules can be managed from the repository.
+- Firestore rules are no longer only configured manually through Firebase Console.
+- User profile creation under users/{uid} works after authentication.
+- google-services.json remains local and ignored by Git.
+
+Status: Validated
