@@ -8,7 +8,6 @@ Validated behavior:
 - User account can be created with Firebase Authentication.
 - Existing user can sign in with Firebase Authentication.
 - After authentication, a Firestore profile is created under users/{uid}.
-- Existing user sign-in updates lastLoginAt and updatedAt.
 - User profile uses Firebase Auth UID as document ID.
 - User profile includes uid, email, displayName, createdAt, lastLoginAt, updatedAt, and status.
 - google-services.json remains local and ignored by Git.
