@@ -1,0 +1,22 @@
+TestedCloud Chat Message UI Validation
+
+Development machine: Mac mini
+App: TestedCloud Chat
+Package name: com.testedcloud.chat
+
+Validated improvements:
+- Chat messages display a readable timestamp.
+- Own messages are visually differentiated from other-user messages.
+- Own messages are aligned to the right.
+- Other-user messages are aligned to the left.
+- Message cards remain compatible with real-time Firestore updates.
+- Direct messaging MVP continues to build successfully.
+
+Known MVP limitation:
+- Direct conversation creation currently expects the other user's Firebase Auth UID, not email.
+- Email-based user lookup is planned as a future usability improvement.
+
+Build validation:
+- ./gradlew build completed successfully.
+
+Status: Validated
