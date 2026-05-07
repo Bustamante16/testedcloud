@@ -1,0 +1,21 @@
+TestedCloud Chat Android Skeleton Validation
+
+Development machine: Mac mini
+IDE: Android Studio
+App name: TestedCloud Chat
+Package name: com.testedcloud.chat
+Language: Kotlin
+UI framework: Jetpack Compose
+Minimum SDK: API 26
+Java runtime: Android Studio bundled JBR / OpenJDK 21
+Build command: ./gradlew build
+Build result: Successful
+
+Validation:
+- Android project created under apps/testedcloud-chat
+- Project opens in Android Studio
+- Project builds successfully from terminal
+- google-services.json is ignored by .gitignore
+- App skeleton is ready for Firebase integration
+
+Status: Validated
