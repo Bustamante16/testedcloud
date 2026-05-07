@@ -1,0 +1,27 @@
+TestedCloud Chat Firebase Auth MVP Validation
+
+Development machine: Mac mini
+App: TestedCloud Chat
+Package name: com.testedcloud.chat
+
+Firebase Authentication:
+- Provider: Email/Password
+- Create account tested: Successful
+- Sign in tested: Successful
+- Sign out tested: Successful
+
+Android UI:
+- Auth screen created
+- Email field available
+- Password field available
+- Create account button enabled after valid input
+- Sign in button enabled after valid input
+- Status message displays authentication result
+
+Build:
+- Firebase SDK integrated
+- google-services.json present locally
+- google-services.json ignored by Git
+- App runs in Android emulator
+
+Status: Validated
