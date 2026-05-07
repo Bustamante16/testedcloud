@@ -1,0 +1,40 @@
+TestedCloud Chat Direct Messaging MVP Validation
+
+Development machine: Mac mini
+App: TestedCloud Chat
+Package name: com.testedcloud.chat
+
+Validated functionality:
+- User can sign in with Firebase Authentication.
+- User profile exists under Firestore users/{uid}.
+- Authenticated user can view their own UID in the app.
+- Authenticated user can create a direct conversation using another user's UID.
+- Conversation is created under Firestore conversations/{conversationId}.
+- Conversation includes participantIds with both user UIDs.
+- Conversation list displays conversations for the signed-in user.
+- Conversation list remains stable after listener adjustment.
+- User can open a direct conversation.
+- User can send a text message.
+- Message is created under conversations/{conversationId}/messages/{messageId}.
+- Message appears in the chat screen in real time.
+- Conversation lastMessageText updates after message send.
+- Direct messaging was tested with multiple users.
+
+Firestore paths validated:
+- users/{uid}
+- conversations/{conversationId}
+- conversations/{conversationId}/messages/{messageId}
+
+Technical notes:
+- Conversation listener uses whereArrayContains on participantIds.
+- Conversation sorting is handled client-side to avoid MVP dependency on composite index readiness.
+- Temporary listener errors do not clear the current visible conversation list.
+- After creating a conversation, the app opens the chat screen directly.
+
+Security:
+- Firestore rules require authenticated users.
+- Conversations are participant-based.
+- Messages require senderId to match the authenticated user.
+- google-services.json remains local and ignored by Git.
+
+Status: Validated
