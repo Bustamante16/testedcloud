@@ -1,5 +1,6 @@
 package com.testedcloud.chat.ui.auth
 
+import com.testedcloud.chat.data.users.UserProfileRepository
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +28,9 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
-    authRepository: AuthRepository = AuthRepository()
+    authRepository: AuthRepository = AuthRepository(),
+    userProfileRepository: UserProfileRepository = UserProfileRepository(),
+    onAuthenticated: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
 
@@ -90,8 +93,14 @@ fun AuthScreen(
                         scope.launch {
                             isLoading = true
                             status = try {
-                                val user = authRepository.signIn(email, password)
-                                "Signed in as ${user?.email ?: "unknown user"}"
+                               val user = authRepository.signIn(email, password)
+                               if (user != null) {
+                                 userProfileRepository.createOrUpdateUserProfile(user)
+                               }
+                               if (user != null) {
+                                   onAuthenticated()
+                               } 
+                               "Signed in as ${user?.email ?: "unknown user"}"
                             } catch (e: Exception) {
                                 "Sign in failed: ${e.message}"
                             }
@@ -110,6 +119,12 @@ fun AuthScreen(
                             isLoading = true
                             status = try {
                                 val user = authRepository.createAccount(email, password)
+                                if (user != null) {
+                                    userProfileRepository.createOrUpdateUserProfile(user)
+                                }
+                                if (user != null) {
+                                onAuthenticated()
+                                }
                                 "Account created: ${user?.email ?: "unknown user"}"
                             } catch (e: Exception) {
                                 "Create account failed: ${e.message}"
