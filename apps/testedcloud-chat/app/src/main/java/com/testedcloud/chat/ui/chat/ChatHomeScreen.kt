@@ -172,7 +172,11 @@ private fun ConversationCard(
     onClick: () -> Unit
 ) {
     val otherParticipants = conversation.participantIds.filter { it != currentUserId }
-
+    val otherUserLabels = otherParticipants.map { participantId ->
+        conversation.participantDisplayNames[participantId]
+            ?: conversation.participantEmails[participantId]
+            ?: participantId
+}
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -189,7 +193,7 @@ private fun ConversationCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "With: ${otherParticipants.joinToString()}",
+                text = "With: ${otherUserLabels.joinToString()}",
                 style = MaterialTheme.typography.bodySmall
             )
 

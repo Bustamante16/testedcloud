@@ -48,8 +48,8 @@ service cloud.firestore {
         && request.resource.data.participantIds == resource.data.participantIds
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.type == resource.data.type
-        && request.resource.data.participantCount == resource.data.participantCount;
-
+        && request.resource.data.participantCount == resource.data.participantCount
+        && request.resource.data.directKey == resource.data.directKey;
       allow delete: if false;
 
       match /messages/{messageId} {
