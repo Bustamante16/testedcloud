@@ -1,0 +1,27 @@
+TestedCloud Chat Conversation Polish Validation
+
+Development machine: Mac mini
+App: TestedCloud Chat
+Package name: com.testedcloud.chat
+
+Validated improvements:
+- Direct conversations use a deterministic directKey based on participant UIDs.
+- Creating a direct conversation with the same participant reuses the existing conversation.
+- Duplicate direct conversations are avoided in the MVP flow.
+- Conversation cards display participant email/displayName instead of only raw UID.
+- Conversation list remains stable after previous listener correction.
+- Messages continue to send and display in real time.
+- Firestore rules protect immutable conversation fields including participantIds, createdBy, type, participantCount, and directKey.
+- Firestore rules were successfully deployed using Firebase CLI.
+- Android build completed successfully after conversation model cleanup.
+
+Firestore fields added:
+- directKey
+- participantEmails
+- participantDisplayNames
+
+Build validation:
+- ./gradlew build completed successfully.
+- Kotlin warnings remain for Firestore unchecked casts and are planned for future cleanup.
+
+Status: Validated
