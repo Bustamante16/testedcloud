@@ -48,6 +48,21 @@ class ConversationRepository(
 
         awaitClose { listener.remove() }
     }
+    suspend fun findUserIdByEmail(email: String): String {
+    val cleanEmail = email.trim().lowercase()
+
+    require(cleanEmail.isNotBlank()) { "Email is required" }
+
+    val result = db.collection("users")
+        .whereEqualTo("email", cleanEmail)
+        .limit(1)
+        .get()
+        .await()
+
+    require(!result.isEmpty) { "No user found with email: $cleanEmail" }
+
+    return result.documents.first().id
+}
 
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>> = callbackFlow {
         val listener = db.collection("conversations")
@@ -140,7 +155,17 @@ class ConversationRepository(
        return docRef.id
 }
 
+suspend fun createDirectConversationByEmail(
+    currentUserId: String,
+    otherUserEmail: String
+): String {
+    val otherUserId = findUserIdByEmail(otherUserEmail)
 
+    return createDirectConversation(
+        currentUserId = currentUserId,
+        otherUserId = otherUserId
+    )
+}
     suspend fun sendMessage(
         conversationId: String,
         senderId: String,

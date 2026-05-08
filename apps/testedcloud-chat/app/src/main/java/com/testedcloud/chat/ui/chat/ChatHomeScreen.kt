@@ -1,11 +1,8 @@
 package com.testedcloud.chat.ui.chat
 
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +18,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,11 +40,9 @@ fun ChatHomeScreen(
     onSignedOut: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
 
     var selectedConversationId by remember { mutableStateOf<String?>(null) }
-    var otherUserId by remember { mutableStateOf("") }
+    var otherUserEmail by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }
 
     val conversations by conversationRepository
@@ -102,9 +96,9 @@ fun ChatHomeScreen(
         )
 
         OutlinedTextField(
-            value = otherUserId,
-            onValueChange = { otherUserId = it.trim() },
-            label = { Text("Other user UID") },
+            value = otherUserEmail,
+            onValueChange = { otherUserEmail = it.trim().lowercase() },
+            label = { Text("Other user email") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -113,21 +107,19 @@ fun ChatHomeScreen(
             onClick = {
                 scope.launch {
                     status = try {
-                        val conversationId = conversationRepository.createDirectConversation(
+                        val conversationId = conversationRepository.createDirectConversationByEmail(
                             currentUserId = user.uid,
-                            otherUserId = otherUserId
+                            otherUserEmail = otherUserEmail
                         )
-                        otherUserId = ""
+                        otherUserEmail = ""
                         selectedConversationId = conversationId
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                        "Conversation created: $conversationId"
+                        "Conversation ready: $conversationId"
                     } catch (e: Exception) {
                         "Create conversation failed: ${e.message}"
                     }
                 }
             },
-            enabled = otherUserId.isNotBlank() && otherUserId != user.uid,
+            enabled = otherUserEmail.isNotBlank() && otherUserEmail != user.email,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Create conversation")
@@ -172,11 +164,13 @@ private fun ConversationCard(
     onClick: () -> Unit
 ) {
     val otherParticipants = conversation.participantIds.filter { it != currentUserId }
+
     val otherUserLabels = otherParticipants.map { participantId ->
         conversation.participantDisplayNames[participantId]
             ?: conversation.participantEmails[participantId]
             ?: participantId
-}
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
