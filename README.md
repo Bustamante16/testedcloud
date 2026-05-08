@@ -4,6 +4,17 @@ TestedCloud is a hybrid cloud portfolio lab designed to demonstrate how on-prem 
 
 The project connects an on-prem Ubuntu/Docker environment running on an Intel NUC with Google Cloud services including Pub/Sub, Cloud Run, BigQuery, Looker Studio, custom VPC networking, private VM access through IAP, Cloudflare Access for protected external access, and Cloud Monitoring alert policies for key operational failure modes.
 
+## Platform Modules
+
+TestedCloud is organized as a hybrid cloud portfolio platform with multiple modules:
+
+- **TestedCloud Core Platform** — On-prem and Google Cloud foundation for secure event ingestion, processing, analytics, and observability.
+- **TestedCloud Rack** — Physical home rack used for hybrid infrastructure validation, network testing, telemetry, and edge/cloud demonstrations.
+- **TestedCloud Chat** — Android messaging app demonstrating Firebase, Firestore, Cloud Run APIs, Pub/Sub events, and analytics.
+- **TestedCloud Monitor** — Operational monitoring layer for service health, event flow, errors, and infrastructure metrics.
+- **TestedCloud AI Ops Assistant** — AI-assisted troubleshooting module for logs, runbooks, incidents, and architecture-aware recommendations.
+- **TestedCloud Edge** — Industrial edge-to-cloud use case connecting local telemetry patterns with Google Cloud analytics.
+
 ## 1\. Purpose
 
 TestedCloud was built to translate industrial networking, secure infrastructure, and on-prem systems experience into practical Google Cloud architecture patterns relevant to roles such as:
