@@ -2,7 +2,6 @@ package com.testedcloud.chat.data.conversations
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -12,8 +11,31 @@ class ConversationRepository(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     private fun directKeyFor(userA: String, userB: String): String {
-    return listOf(userA, userB).sorted().joinToString("_")
+        return listOf(userA, userB).sorted().joinToString("_")
     }
+
+    private fun readStringList(value: Any?): List<String> {
+        return (value as? List<*>)
+            ?.filterIsInstance<String>()
+            ?: emptyList()
+    }
+
+    private fun readStringMap(value: Any?): Map<String, String> {
+        return (value as? Map<*, *>)
+            ?.mapNotNull { (key, mapValue) ->
+                val stringKey = key as? String
+                val stringValue = mapValue as? String
+
+                if (stringKey != null && stringValue != null) {
+                    stringKey to stringValue
+                } else {
+                    null
+                }
+            }
+            ?.toMap()
+            ?: emptyMap()
+    }
+
     fun observeConversations(currentUserId: String): Flow<List<Conversation>> = callbackFlow {
         val listener = db.collection("conversations")
             .whereArrayContains("participantIds", currentUserId)
@@ -22,72 +44,61 @@ class ConversationRepository(
                     return@addSnapshotListener
                 }
 
-                val conversations = snapshot?.documents?.map { doc ->
-                    Conversation(
-                        conversationId = doc.id,
-                        type = doc.getString("type") ?: "direct",
-                        participantIds = doc.get("participantIds") as? List<String> ?: emptyList(),
-                        participantCount = (doc.getLong("participantCount") ?: 0L).toInt(),
-                        directKey = doc.getString("directKey") ?: "",
-                        participantEmails = doc.get("participantEmails") as? Map<String, String> ?: emptyMap(),
-                        participantDisplayNames = doc.get("participantDisplayNames") as? Map<String, String> ?: emptyMap(),
-                        createdAt = doc.getTimestamp("createdAt"),
-                        updatedAt = doc.getTimestamp("updatedAt"),
-                        lastMessageText = doc.getString("lastMessageText") ?: "",
-                        lastMessageAt = doc.getTimestamp("lastMessageAt"),
-                        lastMessageSenderId = doc.getString("lastMessageSenderId") ?: "",
-                        createdBy = doc.getString("createdBy") ?: "",
-                        status = doc.getString("status") ?: "active"
-                    )
-                }?.sortedByDescending { conversation ->
-                    conversation.updatedAt?.seconds ?: 0L
-                } ?: emptyList()
+                val conversations = snapshot?.documents
+                    ?.map { doc ->
+                        Conversation(
+                            conversationId = doc.id,
+                            type = doc.getString("type") ?: "direct",
+                            participantIds = readStringList(doc.get("participantIds")),
+                            participantCount = (doc.getLong("participantCount") ?: 0L).toInt(),
+                            directKey = doc.getString("directKey") ?: "",
+                            participantEmails = readStringMap(doc.get("participantEmails")),
+                            participantDisplayNames = readStringMap(doc.get("participantDisplayNames")),
+                            createdAt = doc.getTimestamp("createdAt"),
+                            updatedAt = doc.getTimestamp("updatedAt"),
+                            lastMessageText = doc.getString("lastMessageText") ?: "",
+                            lastMessageAt = doc.getTimestamp("lastMessageAt"),
+                            lastMessageSenderId = doc.getString("lastMessageSenderId") ?: "",
+                            createdBy = doc.getString("createdBy") ?: "",
+                            status = doc.getString("status") ?: "active"
+                        )
+                    }
+                    ?.sortedByDescending { conversation ->
+                        conversation.updatedAt?.seconds ?: 0L
+                    }
+                    ?: emptyList()
 
                 trySend(conversations)
             }
 
         awaitClose { listener.remove() }
     }
-    suspend fun findUserIdByEmail(email: String): String {
-    val cleanEmail = email.trim().lowercase()
-
-    require(cleanEmail.isNotBlank()) { "Email is required" }
-
-    val result = db.collection("users")
-        .whereEqualTo("email", cleanEmail)
-        .limit(1)
-        .get()
-        .await()
-
-    require(!result.isEmpty) { "No user found with email: $cleanEmail" }
-
-    return result.documents.first().id
-}
 
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>> = callbackFlow {
         val listener = db.collection("conversations")
             .document(conversationId)
             .collection("messages")
-            .orderBy("createdAt", Query.Direction.ASCENDING)
-            .limit(100)
+            .orderBy("createdAt")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     return@addSnapshotListener
                 }
 
-                val messages = snapshot?.documents?.map { doc ->
-                    ChatMessage(
-                        messageId = doc.id,
-                        conversationId = doc.getString("conversationId") ?: conversationId,
-                        senderId = doc.getString("senderId") ?: "",
-                        text = doc.getString("text") ?: "",
-                        createdAt = doc.getTimestamp("createdAt"),
-                        updatedAt = doc.getTimestamp("updatedAt"),
-                        status = doc.getString("status") ?: "sent",
-                        type = doc.getString("type") ?: "text",
-                        deleted = doc.getBoolean("deleted") ?: false
-                    )
-                } ?: emptyList()
+                val messages = snapshot?.documents
+                    ?.map { doc ->
+                        ChatMessage(
+                            messageId = doc.id,
+                            conversationId = doc.getString("conversationId") ?: conversationId,
+                            senderId = doc.getString("senderId") ?: "",
+                            text = doc.getString("text") ?: "",
+                            createdAt = doc.getTimestamp("createdAt"),
+                            updatedAt = doc.getTimestamp("updatedAt"),
+                            status = doc.getString("status") ?: "sent",
+                            type = doc.getString("type") ?: "text",
+                            deleted = doc.getBoolean("deleted") ?: false
+                        )
+                    }
+                    ?: emptyList()
 
                 trySend(messages)
             }
@@ -95,92 +106,119 @@ class ConversationRepository(
         awaitClose { listener.remove() }
     }
 
+    suspend fun findUserIdByEmail(email: String): String {
+        val cleanEmail = email.trim().lowercase()
+
+        require(cleanEmail.isNotBlank()) { "Email is required" }
+
+        val result = db.collection("users")
+            .whereEqualTo("email", cleanEmail)
+            .limit(1)
+            .get()
+            .await()
+
+        require(!result.isEmpty) { "No user found with email: $cleanEmail" }
+
+        return result.documents.first().id
+    }
+
+    suspend fun createDirectConversationByEmail(
+        currentUserId: String,
+        otherUserEmail: String
+    ): String {
+        val otherUserId = findUserIdByEmail(otherUserEmail)
+
+        return createDirectConversation(
+            currentUserId = currentUserId,
+            otherUserId = otherUserId
+        )
+    }
+
     suspend fun createDirectConversation(
         currentUserId: String,
-       otherUserId: String
+        otherUserId: String
     ): String {
-       require(currentUserId.isNotBlank()) { "Current user ID is required" }
-       require(otherUserId.isNotBlank()) { "Other user ID is required" }
-       require(currentUserId != otherUserId) { "Cannot create conversation with yourself" }
+        require(currentUserId.isNotBlank()) { "Current user ID is required" }
+        require(otherUserId.isNotBlank()) { "Other user ID is required" }
+        require(currentUserId != otherUserId) { "Cannot create conversation with yourself" }
 
-       val directKey = directKeyFor(currentUserId, otherUserId)
+        val directKey = directKeyFor(currentUserId, otherUserId)
 
-       val existing = db.collection("conversations")
-           .whereEqualTo("type", "direct")
-           .whereEqualTo("directKey", directKey)
-           .limit(1)
-           .get()
-           .await()
+        val existingForCurrentUser = db.collection("conversations")
+            .whereArrayContains("participantIds", currentUserId)
+            .get()
+            .await()
 
-       if (!existing.isEmpty) {
-           return existing.documents.first().id
-       }
+        val participantSet = setOf(currentUserId, otherUserId)
 
-       val now = Timestamp.now()
+        val existingConversation = existingForCurrentUser.documents.firstOrNull { doc ->
+            val type = doc.getString("type") ?: ""
+            val existingDirectKey = doc.getString("directKey") ?: ""
+            val participants = readStringList(doc.get("participantIds")).toSet()
 
-       val currentUserDoc = db.collection("users").document(currentUserId).get().await()
-       val otherUserDoc = db.collection("users").document(otherUserId).get().await()
+            type == "direct" &&
+                (existingDirectKey == directKey || participants == participantSet)
+        }
 
-       val currentEmail = currentUserDoc.getString("email") ?: currentUserId
-       val otherEmail = otherUserDoc.getString("email") ?: otherUserId
+        if (existingConversation != null) {
+            return existingConversation.id
+        }
 
-       val currentDisplayName = currentUserDoc.getString("displayName") ?: currentEmail
-       val otherDisplayName = otherUserDoc.getString("displayName") ?: otherEmail
+        val now = Timestamp.now()
 
-       val conversationData = mapOf(
-           "type" to "direct",
-           "participantIds" to listOf(currentUserId, otherUserId),
-           "participantCount" to 2,
-           "directKey" to directKey,
-           "participantEmails" to mapOf(
-                  currentUserId to currentEmail,
-                  otherUserId to otherEmail
-           ),
-           "participantDisplayNames" to mapOf(
-               currentUserId to currentDisplayName,
-            otherUserId to otherDisplayName
-        ),
-           "createdAt" to now,
-           "updatedAt" to now,
-           "lastMessageText" to "",
-           "lastMessageAt" to null,
-           "lastMessageSenderId" to "",
-           "createdBy" to currentUserId,
-           "status" to "active"
-       )
+        val currentUserDoc = db.collection("users").document(currentUserId).get().await()
+        val otherUserDoc = db.collection("users").document(otherUserId).get().await()
 
-       val docRef = db.collection("conversations").add(conversationData).await()
-       docRef.update("conversationId", docRef.id).await()
+        val currentEmail = currentUserDoc.getString("email") ?: currentUserId
+        val otherEmail = otherUserDoc.getString("email") ?: otherUserId
 
-       return docRef.id
-}
+        val currentDisplayName = currentUserDoc.getString("displayName") ?: currentEmail
+        val otherDisplayName = otherUserDoc.getString("displayName") ?: otherEmail
 
-suspend fun createDirectConversationByEmail(
-    currentUserId: String,
-    otherUserEmail: String
-): String {
-    val otherUserId = findUserIdByEmail(otherUserEmail)
+        val conversationData = mapOf(
+            "type" to "direct",
+            "participantIds" to listOf(currentUserId, otherUserId),
+            "participantCount" to 2,
+            "directKey" to directKey,
+            "participantEmails" to mapOf(
+                currentUserId to currentEmail,
+                otherUserId to otherEmail
+            ),
+            "participantDisplayNames" to mapOf(
+                currentUserId to currentDisplayName,
+                otherUserId to otherDisplayName
+            ),
+            "createdAt" to now,
+            "updatedAt" to now,
+            "lastMessageText" to "",
+            "lastMessageAt" to null,
+            "lastMessageSenderId" to "",
+            "createdBy" to currentUserId,
+            "status" to "active"
+        )
 
-    return createDirectConversation(
-        currentUserId = currentUserId,
-        otherUserId = otherUserId
-    )
-}
+        val docRef = db.collection("conversations").add(conversationData).await()
+        docRef.update("conversationId", docRef.id).await()
+
+        return docRef.id
+    }
+
     suspend fun sendMessage(
         conversationId: String,
         senderId: String,
         text: String
     ) {
         val cleanText = text.trim()
+
+        require(conversationId.isNotBlank()) { "Conversation ID is required" }
+        require(senderId.isNotBlank()) { "Sender ID is required" }
         require(cleanText.isNotBlank()) { "Message cannot be empty" }
         require(cleanText.length <= 1000) { "Message is too long" }
 
         val now = Timestamp.now()
 
-        val messageRef = db.collection("conversations")
-            .document(conversationId)
-            .collection("messages")
-            .document()
+        val conversationRef = db.collection("conversations").document(conversationId)
+        val messageRef = conversationRef.collection("messages").document()
 
         val messageData = mapOf(
             "messageId" to messageRef.id,
@@ -193,8 +231,6 @@ suspend fun createDirectConversationByEmail(
             "type" to "text",
             "deleted" to false
         )
-
-        val conversationRef = db.collection("conversations").document(conversationId)
 
         db.runBatch { batch ->
             batch.set(messageRef, messageData)
