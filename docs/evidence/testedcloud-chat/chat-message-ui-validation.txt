@@ -13,8 +13,8 @@ Validated improvements:
 - Direct messaging MVP continues to build successfully.
 
 Known MVP limitation:
-- Direct conversation creation currently expects the other user's Firebase Auth UID, not email.
-- Email-based user lookup is planned as a future usability improvement.
+- Direct conversation creation originally expected Firebase Auth UID.
+- Conversation creation by email is planned as the next usability improvement.
 
 Build validation:
 - ./gradlew build completed successfully.
