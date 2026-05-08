@@ -2,20 +2,34 @@ TestedCloud Chat Firebase Setup Validation
 
 Google Cloud project: majestic-layout-255620
 Firebase enabled: yes
-Android app registered: yes
-Android package name: com.testedcloud.chat
-Android app nickname: TestedCloud Chat
-Firebase Authentication enabled: yes
-Authentication provider: Email/Password
-Cloud Firestore enabled: yes
-Firestore mode: Production
-Firestore location: nam5
-Google Sign-In: not enabled yet
-Firebase App Check: planned / future hardening
+
+Android app:
+- Registered: yes
+- App nickname: TestedCloud Chat
+- Android package name: com.testedcloud.chat
+- SHA-1: not configured yet
+- Google Sign-In: not enabled yet
+
+Firebase Authentication:
+- Enabled: yes
+- Provider: Email/Password
+- Email link sign-in: disabled for MVP
+
+Cloud Firestore:
+- Enabled: yes
+- Mode: Production
+- Location: nm5
 
 Configuration handling:
 - google-services.json downloaded locally
 - google-services.json must not be committed
 - service account keys must not be committed
+- Firebase client config is treated intentionally and documented
 
-Status: Validated
+Security posture:
+- Firestore starts with production-mode security posture
+- Initial rules are stored in firebase/testedcloud-chat/firestore.rules
+- Initial indexes are stored in firebase/testedcloud-chat/firestore.indexes.json
+- Firestore rules validation is pending implementation testing
+
+Status: Validated / Initial Firebase foundation created
