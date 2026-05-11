@@ -41,13 +41,13 @@ Validate the current TestedCloud foundation before continuing with TestedCloud C
 
 ## Day 3 — GCP Event Pipeline Validation
 
-- [ ] Confirm active GCP project
-- [ ] List Pub/Sub topics
-- [ ] List Pub/Sub subscriptions
-- [ ] Validate Cloud Run consumer service
-- [ ] Review Cloud Run logs
-- [ ] Send test event
-- [ ] Confirm BigQuery insert
+- [x] Confirm active GCP project
+- [x] List Pub/Sub topics
+- [x] List Pub/Sub subscriptions
+- [x] Validate Cloud Run consumer service
+- [x] Review Cloud Run logs
+- [x] Send test event
+- [x] Confirm BigQuery insert
 - [ ] Save validation evidence
 
 ## Day 4 — IAM and Security Validation
