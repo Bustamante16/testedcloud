@@ -30,14 +30,14 @@ Validate the current TestedCloud foundation before continuing with TestedCloud C
 
 ## Day 2 — On-Prem Validation
 
-- [ ] Validate Docker containers
-- [ ] Validate Docker Compose services
-- [ ] Validate backend container logs
-- [ ] Validate NGINX container logs
-- [ ] Validate FastAPI local health endpoint
-- [ ] Validate NGINX reverse proxy endpoint
+- [x] Validate Docker containers
+- [x] Validate Docker Compose services
+- [x] Validate backend container logs
+- [x] Validate NGINX container logs
+- [x] Validate FastAPI health endpoint through TestedCloud NGINX
+- [x] Validate NGINX reverse proxy endpoint
 - [ ] Validate Cloudflare public endpoint if applicable
-- [ ] Save validation evidence
+- [x] Save validation evidence
 
 ## Day 3 — GCP Event Pipeline Validation
 
