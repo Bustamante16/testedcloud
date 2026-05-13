@@ -210,6 +210,8 @@ Current observed analytics metrics include:
 |p95 latency|5321 ms|
 |p99 latency|5890 ms|
 
+> Note: Metrics represent observed validation samples and may change as new events are generated during ongoing lab validation.
+
 ## 9\. Documentation Index
 
 ### Core Documentation
@@ -249,6 +251,16 @@ Current observed analytics metrics include:
 |-|-|
 |[`docs/evidence/README.md`](docs/evidence/README.md)|Evidence collection strategy and command index|
 |`docs/evidence/\*.txt`|Sanitized command outputs and validation evidence|
+
+### Week 1 Stabilization Evidence
+
+|Document|Description|
+|-|-|
+|[`docs/evidence/onprem-validation-week-1.md`](docs/evidence/onprem-validation-week-1.md)|Week 1 validation of Docker, NGINX reverse proxy, FastAPI health, and on-prem Pub/Sub publishing|
+|[`docs/evidence/gcp-pipeline-validation-week-1.md`](docs/evidence/gcp-pipeline-validation-week-1.md)|Week 1 validation of Pub/Sub, Cloud Run consumer, BigQuery inserts, latency calculation, and dashboard views|
+|[`docs/evidence/iam-security-validation-week-1.md`](docs/evidence/iam-security-validation-week-1.md)|Week 1 validation of service accounts, Cloud Run IAM, Pub/Sub OIDC, private VM, IAP SSH, and BigQuery IAM observations|
+|[`docs/evidence/cloudflare-access-week-1.md`](docs/evidence/cloudflare-access-week-1.md)|Week 1 validation of Cloudflare Access protection and public route behavior|
+|[`docs/evidence/repository-hygiene-week-1.md`](docs/evidence/repository-hygiene-week-1.md)|Week 1 validation of .gitignore, tracked files, local runtime config, and secret hygiene|
 
 ### Monitoring Policy Definitions
 
@@ -413,7 +425,7 @@ Protected operational lab UI remains:
 https://ui.testedcloud.com
 ```
 
-### Phase 3 — TestedChat Release 1
+### Phase 3 — TestedCloud Chat Release 1
 
 Build an Android/Firebase messaging application to demonstrate:
 
@@ -423,9 +435,9 @@ Build an Android/Firebase messaging application to demonstrate:
 * Mobile-first application architecture
 * Privacy/data safety foundations
 
-### Phase 4 — TestedChat Release 2
+### Phase 4 — TestedCloud Chat Release 2
 
-Extend TestedChat with:
+Extend TestedCloud Chat with:
 
 * Cloud Run APIs
 * Pub/Sub events

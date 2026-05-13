@@ -68,15 +68,15 @@ Validate the current TestedCloud foundation before continuing with TestedCloud C
 - [x] Search for private keys
 - [x] Search for hardcoded secrets
 - [x] Confirm no sensitive files are committed
-- [ ] Confirm documentation links are still valid
+- [x] Confirm documentation links are still valid
 
 ## Day 6 — README and Portfolio Review
 
-- [ ] Review main `README.md`
-- [ ] Confirm TestedCloud modules are listed
-- [ ] Confirm architecture docs are linked
-- [ ] Confirm evidence docs are referenced
-- [ ] Confirm roadmap is aligned with current modules
+- [x] Review main `README.md`
+- [x] Confirm TestedCloud modules are listed
+- [x] Confirm architecture docs are linked
+- [x] Confirm evidence docs are referenced
+- [x] Confirm roadmap is aligned with current modules
 
 ## Day 7 — Weekly Closure
 
