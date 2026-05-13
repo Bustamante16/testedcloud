@@ -63,11 +63,11 @@ Validate the current TestedCloud foundation before continuing with TestedCloud C
 
 ## Day 5 — Repository Hygiene
 
-- [ ] Review `.gitignore`
-- [ ] Search for `.env` files
-- [ ] Search for private keys
-- [ ] Search for hardcoded secrets
-- [ ] Confirm no sensitive files are committed
+- [x] Review `.gitignore`
+- [x] Search for `.env` files
+- [x] Search for private keys
+- [x] Search for hardcoded secrets
+- [x] Confirm no sensitive files are committed
 - [ ] Confirm documentation links are still valid
 
 ## Day 6 — README and Portfolio Review
