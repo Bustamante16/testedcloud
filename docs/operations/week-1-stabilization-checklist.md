@@ -58,7 +58,7 @@ Validate the current TestedCloud foundation before continuing with TestedCloud C
 - [x] Review project IAM policy
 - [x] Confirm private VM has no public IP
 - [x] Confirm IAP firewall rule
-- [ ] Confirm Cloudflare Access protection
+- [x] Confirm Cloudflare Access protection
 - [x] Save security validation evidence
 
 ## Day 5 — Repository Hygiene
