@@ -52,14 +52,14 @@ Validate the current TestedCloud foundation before continuing with TestedCloud C
 
 ## Day 4 — IAM and Security Validation
 
-- [ ] List service accounts
-- [ ] Confirm Cloud Run service identity
-- [ ] Confirm Pub/Sub push OIDC configuration
-- [ ] Review project IAM policy
-- [ ] Confirm private VM has no public IP
-- [ ] Confirm IAP firewall rule
+- [x] List service accounts
+- [x] Confirm Cloud Run service identity
+- [x] Confirm Pub/Sub push OIDC configuration
+- [x] Review project IAM policy
+- [x] Confirm private VM has no public IP
+- [x] Confirm IAP firewall rule
 - [ ] Confirm Cloudflare Access protection
-- [ ] Save security validation evidence
+- [x] Save security validation evidence
 
 ## Day 5 — Repository Hygiene
 
