@@ -149,7 +149,20 @@ fun ChatHomeScreen(
                     ConversationCard(
                         conversation = conversation,
                         currentUserId = user.uid,
-                        onClick = { selectedConversationId = conversation.conversationId }
+                        onClick = { selectedConversationId = conversation.conversationId },
+                        onDelete = {
+                            scope.launch {
+                                status = try {
+                                    conversationRepository.deleteConversationForUser(
+                                        conversationId = conversation.conversationId,
+                                        currentUserId = user.uid
+                                    )
+                                    "Conversation deleted for you"
+                                } catch (e: Exception) {
+                                    "Delete conversation failed: ${e.message}"
+                                }
+                            }
+                        }
                     )
                 }
             }
@@ -161,7 +174,8 @@ fun ChatHomeScreen(
 private fun ConversationCard(
     conversation: Conversation,
     currentUserId: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val otherParticipants = conversation.participantIds.filter { it != currentUserId }
 
@@ -197,6 +211,14 @@ private fun ConversationCard(
                 text = conversation.lastMessageText.ifBlank { "No messages yet" },
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onDelete
+            ) {
+                Text("Delete conversation")
+            }
         }
     }
 }

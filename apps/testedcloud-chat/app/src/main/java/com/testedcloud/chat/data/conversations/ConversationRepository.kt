@@ -1,6 +1,7 @@
 package com.testedcloud.chat.data.conversations
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -60,8 +61,12 @@ class ConversationRepository(
                             lastMessageAt = doc.getTimestamp("lastMessageAt"),
                             lastMessageSenderId = doc.getString("lastMessageSenderId") ?: "",
                             createdBy = doc.getString("createdBy") ?: "",
-                            status = doc.getString("status") ?: "active"
+                            status = doc.getString("status") ?: "active",
+                            deletedForUsers = readStringList(doc.get("deletedForUsers"))
                         )
+                    }
+                    ?.filter { conversation ->
+                        currentUserId !in conversation.deletedForUsers && conversation.status != "deleted"
                     }
                     ?.sortedByDescending { conversation ->
                         conversation.updatedAt?.seconds ?: 0L
@@ -169,6 +174,13 @@ class ConversationRepository(
         }
 
         if (existingConversation != null) {
+            existingConversation.reference.update(
+                "deletedForUsers",
+                FieldValue.arrayRemove(currentUserId),
+                "status",
+                "active"
+            ).await()
+
             return existingConversation.id
         }
 
@@ -217,7 +229,8 @@ class ConversationRepository(
             "lastMessageAt" to null,
             "lastMessageSenderId" to "",
             "createdBy" to currentUserId,
-            "status" to "active"
+            "status" to "active",
+            "deletedForUsers" to emptyList<String>()
         )
 
         val docRef = try {
@@ -277,4 +290,36 @@ class ConversationRepository(
             throw Exception("Message send failed: ${e.message}", e)
         }
     }
+
+    suspend fun deleteConversationForUser(
+        conversationId: String,
+        currentUserId: String
+    ) {
+        require(conversationId.isNotBlank()) { "Conversation ID is required" }
+        require(currentUserId.isNotBlank()) { "Current user ID is required" }
+
+        val conversationRef = db.collection("conversations").document(conversationId)
+        val snapshot = conversationRef.get().await()
+
+        require(snapshot.exists()) { "Conversation not found" }
+
+        val participantIds = readStringList(snapshot.get("participantIds"))
+        require(currentUserId in participantIds) { "User is not a conversation participant" }
+
+        val currentDeletedForUsers = readStringList(snapshot.get("deletedForUsers"))
+        val updatedDeletedForUsers = (currentDeletedForUsers + currentUserId).distinct()
+        val allParticipantsDeleted = participantIds.isNotEmpty() &&
+            participantIds.all { participantId -> participantId in updatedDeletedForUsers }
+
+        val updates = mutableMapOf<String, Any>(
+            "deletedForUsers" to FieldValue.arrayUnion(currentUserId)
+        )
+
+        if (allParticipantsDeleted) {
+            updates["status"] = "deleted"
+        }
+
+        conversationRef.update(updates).await()
+    }
+
 }
