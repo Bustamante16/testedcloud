@@ -51,6 +51,9 @@ service cloud.firestore {
         && request.auth.uid in resource.data.participantIds
         && (
           (
+            // Message send metadata update.
+            // A participant can update only last-message fields and optionally
+            // reactivate the conversation for all participants.
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               "updatedAt",
               "lastMessageText",
@@ -60,20 +63,34 @@ service cloud.firestore {
               "status"
             ])
             && request.resource.data.lastMessageSenderId == request.auth.uid
-            && request.resource.data.deletedForUsers is list
-            && request.resource.data.deletedForUsers.size() == 0
-            && request.resource.data.status == "active"
+            && (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(["deletedForUsers"])
+              || (
+                request.resource.data.deletedForUsers is list
+                && request.resource.data.deletedForUsers.hasOnly(resource.data.participantIds)
+              )
+            )
+            && (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status"])
+              || request.resource.data.status == "active"
+            )
           )
           ||
           (
+            // Delete conversation for current user.
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               "deletedForUsers",
               "status"
             ])
             && request.resource.data.deletedForUsers is list
             && request.resource.data.deletedForUsers.hasOnly(resource.data.participantIds)
+            && request.auth.uid in request.resource.data.deletedForUsers
             && (
-              !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status"])
+              !resource.data.keys().hasAny(["deletedForUsers"])
+              || request.resource.data.deletedForUsers.hasAll(resource.data.deletedForUsers)
+            )
+            && (
+              request.resource.data.status == resource.data.status
               || request.resource.data.status == "active"
               || (
                 request.resource.data.status == "deleted"
