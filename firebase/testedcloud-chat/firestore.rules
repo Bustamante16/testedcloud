@@ -56,12 +56,10 @@ service cloud.firestore {
         && request.resource.data.directKey == resource.data.directKey
         && request.resource.data.deletedForUsers is list
         && request.resource.data.deletedForUsers.hasOnly(resource.data.participantIds)
+        && request.auth.uid in request.resource.data.deletedForUsers
         && (
-          request.resource.data.deletedForUsers == resource.data.deletedForUsers
-          || (
-            request.auth.uid in request.resource.data.deletedForUsers
-            && request.resource.data.deletedForUsers.hasAll(resource.data.deletedForUsers)
-          )
+          !resource.data.keys().hasAny(["deletedForUsers"])
+          || request.resource.data.deletedForUsers.hasAll(resource.data.deletedForUsers)
         )
         && (
           request.resource.data.status == resource.data.status
