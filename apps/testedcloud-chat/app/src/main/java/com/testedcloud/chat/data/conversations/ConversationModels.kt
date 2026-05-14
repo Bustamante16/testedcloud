@@ -17,7 +17,8 @@ data class Conversation(
     val lastMessageSenderId: String = "",
     val createdBy: String = "",
     val status: String = "active",
-    val deletedForUsers: List<String> = emptyList()
+    val deletedForUsers: List<String> = emptyList(),
+    val deletedAtByUser: Map<String, Timestamp> = emptyMap()
 )
 
 data class ChatMessage(

@@ -47,7 +47,10 @@ fun ChatScreen(
     var status by remember { mutableStateOf("") }
 
     val messages by conversationRepository
-        .observeMessages(conversationId)
+        .observeMessages(
+            conversationId = conversationId,
+            currentUserId = currentUserId
+        )
         .collectAsState(initial = emptyList())
 
     Column(

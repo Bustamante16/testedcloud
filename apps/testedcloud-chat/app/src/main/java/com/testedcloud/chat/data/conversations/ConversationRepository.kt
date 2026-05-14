@@ -1,7 +1,6 @@
 package com.testedcloud.chat.data.conversations
 
 import com.google.firebase.Timestamp
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +36,22 @@ class ConversationRepository(
             ?: emptyMap()
     }
 
+    private fun readTimestampMap(value: Any?): Map<String, Timestamp> {
+        return (value as? Map<*, *>)
+            ?.mapNotNull { (key, mapValue) ->
+                val stringKey = key as? String
+                val timestampValue = mapValue as? Timestamp
+
+                if (stringKey != null && timestampValue != null) {
+                    stringKey to timestampValue
+                } else {
+                    null
+                }
+            }
+            ?.toMap()
+            ?: emptyMap()
+    }
+
     fun observeConversations(currentUserId: String): Flow<List<Conversation>> = callbackFlow {
         val listener = db.collection("conversations")
             .whereArrayContains("participantIds", currentUserId)
@@ -62,11 +77,28 @@ class ConversationRepository(
                             lastMessageSenderId = doc.getString("lastMessageSenderId") ?: "",
                             createdBy = doc.getString("createdBy") ?: "",
                             status = doc.getString("status") ?: "active",
-                            deletedForUsers = readStringList(doc.get("deletedForUsers"))
+                            deletedForUsers = readStringList(doc.get("deletedForUsers")),
+                            deletedAtByUser = readTimestampMap(doc.get("deletedAtByUser"))
                         )
                     }
                     ?.filter { conversation ->
-                        currentUserId !in conversation.deletedForUsers && conversation.status != "deleted"
+                        val explicitDeletedAt = conversation.deletedAtByUser[currentUserId]
+                        val legacyDeletedAt = if (currentUserId in conversation.deletedForUsers) {
+                            conversation.updatedAt
+                        } else {
+                            null
+                        }
+                        val effectiveDeletedAt = explicitDeletedAt ?: legacyDeletedAt
+                        val lastActivityAt = conversation.lastMessageAt ?: conversation.updatedAt
+
+                        conversation.status != "deleted" &&
+                            (
+                                effectiveDeletedAt == null ||
+                                    (
+                                        lastActivityAt != null &&
+                                            lastActivityAt.seconds > effectiveDeletedAt.seconds
+                                    )
+                            )
                     }
                     ?.sortedByDescending { conversation ->
                         conversation.updatedAt?.seconds ?: 0L
@@ -79,9 +111,13 @@ class ConversationRepository(
         awaitClose { listener.remove() }
     }
 
-    fun observeMessages(conversationId: String): Flow<List<ChatMessage>> = callbackFlow {
-        val listener = db.collection("conversations")
-            .document(conversationId)
+    fun observeMessages(
+        conversationId: String,
+        currentUserId: String
+    ): Flow<List<ChatMessage>> = callbackFlow {
+        val conversationRef = db.collection("conversations").document(conversationId)
+
+        val listener = conversationRef
             .collection("messages")
             .orderBy("createdAt")
             .addSnapshotListener { snapshot, error ->
@@ -89,23 +125,51 @@ class ConversationRepository(
                     return@addSnapshotListener
                 }
 
-                val messages = snapshot?.documents
-                    ?.map { doc ->
-                        ChatMessage(
-                            messageId = doc.id,
-                            conversationId = doc.getString("conversationId") ?: conversationId,
-                            senderId = doc.getString("senderId") ?: "",
-                            text = doc.getString("text") ?: "",
-                            createdAt = doc.getTimestamp("createdAt"),
-                            updatedAt = doc.getTimestamp("updatedAt"),
-                            status = doc.getString("status") ?: "sent",
-                            type = doc.getString("type") ?: "text",
-                            deleted = doc.getBoolean("deleted") ?: false
+                conversationRef.get()
+                    .addOnSuccessListener { conversationSnapshot ->
+                        val deletedAtByUser = readTimestampMap(
+                            conversationSnapshot.get("deletedAtByUser")
                         )
-                    }
-                    ?: emptyList()
+                        val deletedForUsers = readStringList(
+                            conversationSnapshot.get("deletedForUsers")
+                        )
 
-                trySend(messages)
+                        val explicitDeletedAt = deletedAtByUser[currentUserId]
+                        val legacyDeletedAt = if (currentUserId in deletedForUsers) {
+                            conversationSnapshot.getTimestamp("updatedAt")
+                        } else {
+                            null
+                        }
+                        val effectiveDeletedAt = explicitDeletedAt ?: legacyDeletedAt
+
+                        val messages = snapshot?.documents
+                            ?.map { doc ->
+                                ChatMessage(
+                                    messageId = doc.id,
+                                    conversationId = doc.getString("conversationId") ?: conversationId,
+                                    senderId = doc.getString("senderId") ?: "",
+                                    text = doc.getString("text") ?: "",
+                                    createdAt = doc.getTimestamp("createdAt"),
+                                    updatedAt = doc.getTimestamp("updatedAt"),
+                                    status = doc.getString("status") ?: "sent",
+                                    type = doc.getString("type") ?: "text",
+                                    deleted = doc.getBoolean("deleted") ?: false
+                                )
+                            }
+                            ?.filter { message ->
+                                effectiveDeletedAt == null ||
+                                    (
+                                        message.createdAt != null &&
+                                            message.createdAt.seconds > effectiveDeletedAt.seconds
+                                    )
+                            }
+                            ?: emptyList()
+
+                        trySend(messages)
+                    }
+                    .addOnFailureListener {
+                        trySend(emptyList())
+                    }
             }
 
         awaitClose { listener.remove() }
@@ -174,13 +238,6 @@ class ConversationRepository(
         }
 
         if (existingConversation != null) {
-            existingConversation.reference.update(
-                "deletedForUsers",
-                FieldValue.arrayRemove(currentUserId),
-                "status",
-                "active"
-            ).await()
-
             return existingConversation.id
         }
 
@@ -230,7 +287,8 @@ class ConversationRepository(
             "lastMessageSenderId" to "",
             "createdBy" to currentUserId,
             "status" to "active",
-            "deletedForUsers" to emptyList<String>()
+            "deletedForUsers" to emptyList<String>(),
+            "deletedAtByUser" to emptyMap<String, Timestamp>()
         )
 
         val docRef = try {
@@ -306,13 +364,16 @@ class ConversationRepository(
         val participantIds = readStringList(snapshot.get("participantIds"))
         require(currentUserId in participantIds) { "User is not a conversation participant" }
 
-        val currentDeletedForUsers = readStringList(snapshot.get("deletedForUsers"))
-        val updatedDeletedForUsers = (currentDeletedForUsers + currentUserId).distinct()
+        val now = Timestamp.now()
+        val deletedAtByUser = readTimestampMap(snapshot.get("deletedAtByUser"))
+
         val allParticipantsDeleted = participantIds.isNotEmpty() &&
-            participantIds.all { participantId -> participantId in updatedDeletedForUsers }
+            participantIds.all { participantId ->
+                participantId == currentUserId || participantId in deletedAtByUser
+            }
 
         val updates = mutableMapOf<String, Any>(
-            "deletedForUsers" to FieldValue.arrayUnion(currentUserId)
+            "deletedAtByUser.$currentUserId" to now
         )
 
         if (allParticipantsDeleted) {
@@ -322,4 +383,6 @@ class ConversationRepository(
         conversationRef.update(updates).await()
     }
 
+
 }
+
