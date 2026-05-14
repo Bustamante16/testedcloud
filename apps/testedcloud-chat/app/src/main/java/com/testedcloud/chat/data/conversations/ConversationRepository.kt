@@ -111,11 +111,15 @@ class ConversationRepository(
 
         require(cleanEmail.isNotBlank()) { "Email is required" }
 
-        val result = db.collection("users")
-            .whereEqualTo("email", cleanEmail)
-            .limit(1)
-            .get()
-            .await()
+        val result = try {
+            db.collection("users")
+                .whereEqualTo("email", cleanEmail)
+                .limit(1)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            throw Exception("User email lookup failed for $cleanEmail: ${e.message}", e)
+        }
 
         require(!result.isEmpty) { "No user found with email: $cleanEmail" }
 
@@ -144,10 +148,14 @@ class ConversationRepository(
 
         val directKey = directKeyFor(currentUserId, otherUserId)
 
-        val existingForCurrentUser = db.collection("conversations")
-            .whereArrayContains("participantIds", currentUserId)
-            .get()
-            .await()
+        val existingForCurrentUser = try {
+            db.collection("conversations")
+                .whereArrayContains("participantIds", currentUserId)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Existing conversation lookup failed: ${e.message}", e)
+        }
 
         val participantSet = setOf(currentUserId, otherUserId)
 
@@ -166,8 +174,23 @@ class ConversationRepository(
 
         val now = Timestamp.now()
 
-        val currentUserDoc = db.collection("users").document(currentUserId).get().await()
-        val otherUserDoc = db.collection("users").document(otherUserId).get().await()
+        val currentUserDoc = try {
+            db.collection("users")
+                .document(currentUserId)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Current user profile read failed: ${e.message}", e)
+        }
+
+        val otherUserDoc = try {
+            db.collection("users")
+                .document(otherUserId)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Other user profile read failed: ${e.message}", e)
+        }
 
         val currentEmail = currentUserDoc.getString("email") ?: currentUserId
         val otherEmail = otherUserDoc.getString("email") ?: otherUserId
@@ -197,8 +220,13 @@ class ConversationRepository(
             "status" to "active"
         )
 
-        val docRef = db.collection("conversations").add(conversationData).await()
-        docRef.update("conversationId", docRef.id).await()
+        val docRef = try {
+            db.collection("conversations")
+                .add(conversationData)
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Conversation create failed: ${e.message}", e)
+        }
 
         return docRef.id
     }
@@ -232,17 +260,21 @@ class ConversationRepository(
             "deleted" to false
         )
 
-        db.runBatch { batch ->
-            batch.set(messageRef, messageData)
-            batch.update(
-                conversationRef,
-                mapOf(
-                    "updatedAt" to now,
-                    "lastMessageText" to cleanText,
-                    "lastMessageAt" to now,
-                    "lastMessageSenderId" to senderId
+        try {
+            db.runBatch { batch ->
+                batch.set(messageRef, messageData)
+                batch.update(
+                    conversationRef,
+                    mapOf(
+                        "updatedAt" to now,
+                        "lastMessageText" to cleanText,
+                        "lastMessageAt" to now,
+                        "lastMessageSenderId" to senderId
+                    )
                 )
-            )
-        }.await()
+            }.await()
+        } catch (e: Exception) {
+            throw Exception("Message send failed: ${e.message}", e)
+        }
     }
 }
