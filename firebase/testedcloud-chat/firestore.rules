@@ -55,9 +55,14 @@ service cloud.firestore {
               "updatedAt",
               "lastMessageText",
               "lastMessageAt",
-              "lastMessageSenderId"
+              "lastMessageSenderId",
+              "deletedForUsers",
+              "status"
             ])
             && request.resource.data.lastMessageSenderId == request.auth.uid
+            && request.resource.data.deletedForUsers is list
+            && request.resource.data.deletedForUsers.size() == 0
+            && request.resource.data.status == "active"
           )
           ||
           (
