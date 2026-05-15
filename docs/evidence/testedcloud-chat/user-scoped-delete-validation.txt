@@ -1,0 +1,153 @@
+TestedCloud Chat — User-Scoped Conversation Delete Validation
+
+Date: May 2026
+Scope: Android app, Firestore conversations, messages, user-scoped delete behavior, and Firestore rules
+
+Objective
+---------
+
+Validate that TestedCloud Chat supports a "delete conversation for me" workflow without deleting the conversation for other participants.
+
+Desired behavior:
+
+1. A user can delete a conversation from their own view.
+2. The conversation remains available for the other participant.
+3. Messages sent before the user's delete action are hidden from that user.
+4. If the other participant sends a new message after the delete action, the conversation reappears.
+5. When the conversation reappears, the user sees only messages sent after their delete timestamp.
+6. The Android client does not physically delete the Firestore conversation document.
+
+Firebase Project
+----------------
+
+The Android app uses the Firebase project from google-services.json:
+
+    project_id: majestic-layout-255620-b88b2
+    project_number: 721867055514
+
+Firestore rules must be deployed to:
+
+    majestic-layout-255620-b88b2
+
+Correct deploy command:
+
+    firebase deploy --only firestore:rules --project majestic-layout-255620-b88b2
+
+Important Finding
+-----------------
+
+The TestedCloud Core GCP project and TestedCloud Chat Firebase project are not the same project ID.
+
+TestedCloud Core GCP project:
+
+    majestic-layout-255620
+
+TestedCloud Chat Firebase project:
+
+    majestic-layout-255620-b88b2
+
+Implemented Design
+------------------
+
+The initial idea used:
+
+    deletedForUsers: array<string>
+
+This was not sufficient because it only recorded that a user deleted or hidden the conversation. It did not record when the user deleted the conversation.
+
+The final design uses:
+
+    deletedAtByUser: map<uid, timestamp>
+
+This allows the app to determine which messages should remain hidden for each user.
+
+Visibility Behavior
+-------------------
+
+Conversation visibility for a user:
+
+    visible if deletedAtByUser[currentUserId] does not exist
+
+OR
+
+    visible if lastMessageAt is newer than deletedAtByUser[currentUserId]
+
+Message visibility for a user:
+
+    show all messages if deletedAtByUser[currentUserId] does not exist
+
+OR
+
+    show only messages where createdAt is newer than deletedAtByUser[currentUserId]
+
+Validated User Flow
+-------------------
+
+Test flow:
+
+1. Login as user1@testedcloud.com.
+2. Create/open direct conversation with user2@testedcloud.com.
+3. Send messages from user1 to user2.
+4. Login as user2@testedcloud.com.
+5. Confirm conversation and messages are visible.
+6. Delete conversation from user2.
+7. Confirm conversation disappears from user2's conversation list.
+8. Login as user1@testedcloud.com.
+9. Confirm the conversation remains available to user1.
+10. Send a new message from user1 to user2.
+11. Login as user2@testedcloud.com.
+12. Confirm conversation reappears for user2.
+13. Confirm user2 sees only messages sent after user2's delete timestamp.
+14. Confirm messages sent before user2 deleted the conversation remain hidden from user2.
+
+Result:
+
+    PASS
+
+Observed Issues During Validation
+---------------------------------
+
+Issue 1:
+
+    Firestore rules were initially deployed to the wrong project.
+
+Root cause:
+
+    Android app uses project majestic-layout-255620-b88b2, while the original deploy targeted majestic-layout-255620.
+
+Resolution:
+
+    Deployed Firestore rules using the correct project ID.
+
+Issue 2:
+
+    deletedForUsers was insufficient for correct user-scoped delete behavior.
+
+Root cause:
+
+    It did not store the timestamp of deletion, so old messages could reappear when a conversation was reactivated.
+
+Resolution:
+
+    Added deletedAtByUser map to store per-user delete timestamp.
+
+Issue 3:
+
+    Messages appeared briefly and disappeared after send.
+
+Root cause:
+
+    Firestore performed a local optimistic update, then rejected the batch because conversation metadata updates did not match security rules.
+
+Resolution:
+
+    Simplified sendMessage conversation metadata updates to only update last-message fields.
+
+Final Result
+------------
+
+User-scoped conversation delete validation result:
+
+    PASS
+
+The feature now behaves as a "delete for me" workflow rather than a global delete.

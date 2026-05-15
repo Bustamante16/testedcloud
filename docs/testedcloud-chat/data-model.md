@@ -773,3 +773,115 @@ It demonstrates:
 
 The model is intentionally simple for Release 1 but extensible for future features such as read receipts, notifications, AI assistance, and analytics dashboards.
 
+## User-Scoped Conversation Delete
+
+### Purpose
+
+TestedCloud Chat supports a user-scoped "delete conversation" workflow.
+
+The user-facing action is:
+
+    Delete conversation
+
+The technical behavior is:
+
+    Delete conversation for me
+
+This means a user can remove a conversation from their own view without deleting it for the other participant.
+
+### Final Design
+
+The conversation document uses a per-user delete timestamp:
+
+    deletedAtByUser: map<uid, timestamp>
+
+Example:
+
+    {
+      "participantIds": ["uid_user_1", "uid_user_2"],
+      "deletedAtByUser": {
+        "uid_user_1": "2026-05-14T11:24:00Z"
+      }
+    }
+
+### Why Timestamp-Based Delete Is Required
+
+An earlier design considered:
+
+    deletedForUsers: array<string>
+
+That design was not sufficient because it only recorded that a user deleted the conversation. It did not record when the delete happened.
+
+Without a timestamp, the app cannot correctly decide which old messages should remain hidden when a conversation is reactivated by a new message.
+
+The timestamp-based design solves this by allowing the app to hide only messages created before the user's delete timestamp.
+
+### Conversation Visibility Rule
+
+A conversation should be visible to a user when:
+
+    deletedAtByUser[currentUserId] does not exist
+
+or:
+
+    lastMessageAt > deletedAtByUser[currentUserId]
+
+This means:
+
+- If the user never deleted the conversation, they see it.
+- If the user deleted the conversation, they do not see it until a new message is sent after their delete timestamp.
+- If a new message is sent after the delete timestamp, the conversation reappears.
+
+### Message Visibility Rule
+
+Messages should be visible to a user when:
+
+    deletedAtByUser[currentUserId] does not exist
+
+or:
+
+    message.createdAt > deletedAtByUser[currentUserId]
+
+This means:
+
+- If the user never deleted the conversation, they see all messages.
+- If the user deleted the conversation, they only see messages created after their delete timestamp.
+- Old messages remain hidden for that user.
+
+### Physical Deletion Policy
+
+The Android client should not physically delete conversation documents.
+
+For the MVP, deleting a conversation is a user-scoped soft delete.
+
+Future cleanup can be handled by a trusted backend or admin process.
+
+Potential future cleanup rule:
+
+    If all participants deleted the conversation and no new messages were created after the delete timestamps, a backend cleanup job may delete or archive the conversation after a retention period.
+
+### Firestore Fields
+
+Additional field:
+
+|Field|Type|Required|Description|
+|-|-|-|-|
+|deletedAtByUser|map<string, timestamp>|No|Stores per-user delete timestamp for user-scoped conversation deletion|
+
+Legacy field:
+
+|Field|Type|Status|Description|
+|-|-|-|-|
+|deletedForUsers|array<string>|Legacy / deprecated|Initial user-scoped delete approach. Kept only for compatibility but should not be the primary visibility mechanism.|
+
+### Validated Behavior
+
+Validated behavior:
+
+- User can delete conversation from their own list.
+- Other participant can still see the conversation.
+- Messages before the delete timestamp are hidden from the deleting user.
+- A new message from the other participant reactivates the conversation for the deleting user.
+- The reactivated user sees only new messages after their delete timestamp.
+- The Android client does not physically delete the conversation document.
+
