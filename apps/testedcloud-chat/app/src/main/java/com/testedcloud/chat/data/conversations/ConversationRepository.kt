@@ -97,19 +97,13 @@ class ConversationRepository(
                         )
                     }
                     ?.filter { conversation ->
-                        val explicitDeletedAt = conversation.deletedAtByUser[currentUserId]
-                        val legacyDeletedAt = if (currentUserId in conversation.deletedForUsers) {
-                            conversation.updatedAt
-                        } else {
-                            null
-                        }
-                        val effectiveDeletedAt = explicitDeletedAt ?: legacyDeletedAt
+                        val deletedAt = conversation.deletedAtByUser[currentUserId]
                         val lastActivityAt = conversation.lastMessageAt ?: conversation.updatedAt
 
                         conversation.status != "deleted" &&
                             (
-                                effectiveDeletedAt == null ||
-                                    isAfterTimestamp(lastActivityAt, effectiveDeletedAt)
+                                deletedAt == null ||
+                                    isAfterTimestamp(lastActivityAt, deletedAt)
                             )
                     }
                     ?.sortedByDescending { conversation ->
@@ -142,17 +136,8 @@ class ConversationRepository(
                         val deletedAtByUser = readTimestampMap(
                             conversationSnapshot.get("deletedAtByUser")
                         )
-                        val deletedForUsers = readStringList(
-                            conversationSnapshot.get("deletedForUsers")
-                        )
 
-                        val explicitDeletedAt = deletedAtByUser[currentUserId]
-                        val legacyDeletedAt = if (currentUserId in deletedForUsers) {
-                            conversationSnapshot.getTimestamp("updatedAt")
-                        } else {
-                            null
-                        }
-                        val effectiveDeletedAt = explicitDeletedAt ?: legacyDeletedAt
+                        val effectiveDeletedAt = deletedAtByUser[currentUserId]
 
                         val messages = snapshot?.documents
                             ?.map { doc ->
