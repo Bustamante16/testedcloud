@@ -52,15 +52,14 @@ service cloud.firestore {
         && (
           (
             // Message send metadata update.
+            // A participant can update only last-message metadata.
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               "updatedAt",
               "lastMessageText",
               "lastMessageAt",
-              "lastMessageSenderId",
-              "status"
+              "lastMessageSenderId"
             ])
             && request.resource.data.lastMessageSenderId == request.auth.uid
-            && request.resource.data.status == "active"
           )
           ||
           (
