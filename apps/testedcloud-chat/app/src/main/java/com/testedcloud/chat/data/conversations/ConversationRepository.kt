@@ -52,6 +52,21 @@ class ConversationRepository(
             ?: emptyMap()
     }
 
+    private fun isAfterTimestamp(
+        candidate: Timestamp?,
+        reference: Timestamp?
+    ): Boolean {
+        if (candidate == null || reference == null) {
+            return false
+        }
+
+        return candidate.seconds > reference.seconds ||
+            (
+                candidate.seconds == reference.seconds &&
+                    candidate.nanoseconds > reference.nanoseconds
+            )
+    }
+
     fun observeConversations(currentUserId: String): Flow<List<Conversation>> = callbackFlow {
         val listener = db.collection("conversations")
             .whereArrayContains("participantIds", currentUserId)
@@ -94,10 +109,7 @@ class ConversationRepository(
                         conversation.status != "deleted" &&
                             (
                                 effectiveDeletedAt == null ||
-                                    (
-                                        lastActivityAt != null &&
-                                            lastActivityAt.seconds > effectiveDeletedAt.seconds
-                                    )
+                                    isAfterTimestamp(lastActivityAt, effectiveDeletedAt)
                             )
                     }
                     ?.sortedByDescending { conversation ->
@@ -158,10 +170,7 @@ class ConversationRepository(
                             }
                             ?.filter { message ->
                                 effectiveDeletedAt == null ||
-                                    (
-                                        message.createdAt != null &&
-                                            message.createdAt.seconds > effectiveDeletedAt.seconds
-                                    )
+                                    isAfterTimestamp(message.createdAt, effectiveDeletedAt)
                             }
                             ?: emptyList()
 
