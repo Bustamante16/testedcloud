@@ -1306,3 +1306,303 @@ Implementation status:
 Next recommended implementation step:
 
     Add local Android analytics models and a no-op AnalyticsRepository so the app can emit structured events without sending them to Cloud Run yet.
+
+## User-Scoped Delete Analytics Update
+
+### Purpose
+
+This section updates the TestedCloud Chat analytics model after validating the user-scoped conversation delete workflow.
+
+The app now supports:
+
+    Delete conversation for me
+
+The technical model is based on:
+
+    deletedAtByUser: map<uid, timestamp>
+
+Because this is not a global delete, analytics should not use a generic event name such as:
+
+    conversation_deleted
+
+Instead, the analytics event should explicitly represent the user-scoped behavior.
+
+### Updated MVP Chat Events
+
+The recommended MVP analytics events for the current TestedCloud Chat state are:
+
+    conversation_created
+    message_sent
+    conversation_deleted_for_user
+    conversation_reactivated_by_message
+
+These events are enough to describe the core conversation lifecycle without collecting message content.
+
+### Event: conversation_created
+
+Purpose:
+
+    Tracks when a direct conversation is created or first initialized.
+
+Recommended trigger:
+
+    When createDirectConversation creates a new Firestore conversation document.
+
+Do not emit this event when the app simply reuses an existing direct conversation.
+
+Recommended fields:
+
+|Field|Required|Notes|
+|-|-|-|
+|event_id|Yes|Unique event ID|
+|event_type|Yes|conversation_created|
+|source|Yes|testedcloud-chat-android|
+|origin|Yes|firebase|
+|user_id|Yes|Firebase UID of actor|
+|conversation_id|Yes|Conversation document ID|
+|created_at|Yes|Client-side event timestamp|
+|metadata.conversation_type|Yes|direct|
+|metadata.participant_count|Yes|2|
+
+Privacy notes:
+
+- Do not include participant emails.
+- Do not include participant display names.
+- Do not include message text.
+
+Example:
+
+    {
+      "event_id": "uuid",
+      "event_type": "conversation_created",
+      "source": "testedcloud-chat-android",
+      "origin": "firebase",
+      "user_id": "uid_user_1",
+      "conversation_id": "conversation_123",
+      "created_at": "2026-05-14T12:00:00Z",
+      "metadata": {
+        "conversation_type": "direct",
+        "participant_count": 2
+      }
+    }
+
+### Event: message_sent
+
+Purpose:
+
+    Tracks when a user sends a chat message.
+
+Recommended trigger:
+
+    After sendMessage completes successfully.
+
+Recommended fields:
+
+|Field|Required|Notes|
+|-|-|-|
+|event_id|Yes|Unique event ID|
+|event_type|Yes|message_sent|
+|source|Yes|testedcloud-chat-android|
+|origin|Yes|firebase|
+|user_id|Yes|Firebase UID of sender|
+|conversation_id|Yes|Conversation document ID|
+|message_id|No|Message document ID if available|
+|created_at|Yes|Client-side event timestamp|
+|metadata.message_length|Yes|Length of message text only|
+|metadata.conversation_type|Yes|direct|
+
+Privacy notes:
+
+- Do not include message text.
+- Do not include recipient email.
+- Do not include recipient display name.
+- Message length is acceptable because it supports basic analytics without storing content.
+
+Example:
+
+    {
+      "event_id": "uuid",
+      "event_type": "message_sent",
+      "source": "testedcloud-chat-android",
+      "origin": "firebase",
+      "user_id": "uid_user_1",
+      "conversation_id": "conversation_123",
+      "message_id": "message_456",
+      "created_at": "2026-05-14T12:05:00Z",
+      "metadata": {
+        "conversation_type": "direct",
+        "message_length": 42
+      }
+    }
+
+### Event: conversation_deleted_for_user
+
+Purpose:
+
+    Tracks when a user deletes a conversation only from their own view.
+
+Recommended trigger:
+
+    After deleteConversationForUser completes successfully.
+
+This event represents a user-scoped soft delete, not a global delete.
+
+Recommended fields:
+
+|Field|Required|Notes|
+|-|-|-|
+|event_id|Yes|Unique event ID|
+|event_type|Yes|conversation_deleted_for_user|
+|source|Yes|testedcloud-chat-android|
+|origin|Yes|firebase|
+|user_id|Yes|Firebase UID of actor|
+|conversation_id|Yes|Conversation document ID|
+|created_at|Yes|Client-side event timestamp|
+|metadata.delete_scope|Yes|for_me|
+|metadata.delete_model|Yes|deletedAtByUser|
+
+Privacy notes:
+
+- Do not include message text.
+- Do not include participant emails.
+- Do not expose whether the other participant has deleted the conversation.
+
+Example:
+
+    {
+      "event_id": "uuid",
+      "event_type": "conversation_deleted_for_user",
+      "source": "testedcloud-chat-android",
+      "origin": "firebase",
+      "user_id": "uid_user_1",
+      "conversation_id": "conversation_123",
+      "created_at": "2026-05-14T12:10:00Z",
+      "metadata": {
+        "delete_scope": "for_me",
+        "delete_model": "deletedAtByUser"
+      }
+    }
+
+### Event: conversation_reactivated_by_message
+
+Purpose:
+
+    Tracks when a conversation previously deleted by a user becomes visible again because another participant sent a new message after the user's delete timestamp.
+
+Recommended trigger:
+
+    When the app observes a conversation where:
+
+    deletedAtByUser[currentUserId] exists
+
+and:
+
+    lastMessageAt > deletedAtByUser[currentUserId]
+
+This event should be emitted carefully to avoid duplicate events for the same reactivation.
+
+Recommended deduplication key:
+
+    conversation_id + user_id + lastMessageAt
+
+Recommended fields:
+
+|Field|Required|Notes|
+|-|-|-|
+|event_id|Yes|Unique event ID|
+|event_type|Yes|conversation_reactivated_by_message|
+|source|Yes|testedcloud-chat-android|
+|origin|Yes|firebase|
+|user_id|Yes|Firebase UID of user seeing reactivated conversation|
+|conversation_id|Yes|Conversation document ID|
+|created_at|Yes|Client-side event timestamp|
+|metadata.reactivation_reason|Yes|new_message_after_user_delete|
+|metadata.delete_model|Yes|deletedAtByUser|
+
+Privacy notes:
+
+- Do not include the message text that caused reactivation.
+- Do not include sender email.
+- Do not include participant display names.
+
+Example:
+
+    {
+      "event_id": "uuid",
+      "event_type": "conversation_reactivated_by_message",
+      "source": "testedcloud-chat-android",
+      "origin": "firebase",
+      "user_id": "uid_user_2",
+      "conversation_id": "conversation_123",
+      "created_at": "2026-05-14T12:20:00Z",
+      "metadata": {
+        "reactivation_reason": "new_message_after_user_delete",
+        "delete_model": "deletedAtByUser"
+      }
+    }
+
+### Implementation Recommendation
+
+Analytics should be implemented after the current chat behavior remains stable.
+
+Recommended implementation order:
+
+1. Create a local analytics event model in Android.
+2. Add a no-op AnalyticsRepository interface.
+3. Emit local/log-only events first.
+4. Add a Cloud Run collector later.
+5. Publish events to Pub/Sub.
+6. Write events to BigQuery.
+7. Build Looker Studio dashboard views.
+
+### Reliability Rule
+
+Analytics must never block chat functionality.
+
+If analytics fails:
+
+    message sending must still succeed
+    conversation delete must still succeed
+    conversation creation must still succeed
+
+Errors should be logged locally and later routed to a non-blocking retry or diagnostic mechanism.
+
+### Privacy Rule
+
+Analytics must not include:
+
+- Full message text
+- Participant emails
+- Participant display names
+- Contact lists
+- Phone numbers
+- Precise location
+- Authentication tokens
+- Firestore security rule payloads
+- Raw exception traces containing secrets
+
+Analytics may include:
+
+- Firebase UID
+- Conversation ID
+- Message ID
+- Message length
+- Event type
+- App version
+- Platform
+- Timestamp
+- Non-sensitive operational metadata
+
+### Current Status
+
+Status:
+
+    DESIGN UPDATED
+
+Implementation status:
+
+    Not implemented in Android code yet.
+
+Next recommended implementation step:
+
+    Add local Android analytics models and a no-op AnalyticsRepository so the app can emit structured events without sending them to Cloud Run yet.
