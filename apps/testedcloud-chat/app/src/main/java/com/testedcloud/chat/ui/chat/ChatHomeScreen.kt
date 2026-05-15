@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +43,7 @@ fun ChatHomeScreen(
     val scope = rememberCoroutineScope()
 
     var selectedConversationId by remember { mutableStateOf<String?>(null) }
+    var conversationPendingDelete by remember { mutableStateOf<Conversation?>(null) }
     var otherUserEmail by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }
 
@@ -56,6 +58,57 @@ fun ChatHomeScreen(
             onBack = { selectedConversationId = null }
         )
         return
+    }
+
+
+    if (conversationPendingDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                conversationPendingDelete = null
+            },
+            title = {
+                Text("Delete conversation?")
+            },
+            text = {
+                Text(
+                    "This will remove the conversation from your view. " +
+                        "Other participants will still keep their copy."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val conversationToDelete = conversationPendingDelete
+                        conversationPendingDelete = null
+
+                        if (conversationToDelete != null) {
+                            scope.launch {
+                                status = try {
+                                    conversationRepository.deleteConversationForUser(
+                                        conversationId = conversationToDelete.conversationId,
+                                        currentUserId = user.uid
+                                    )
+                                    "Conversation deleted for you"
+                                } catch (e: Exception) {
+                                    "Delete conversation failed: ${e.message}"
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Text("Delete conversation")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        conversationPendingDelete = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Column(
@@ -151,17 +204,7 @@ fun ChatHomeScreen(
                         currentUserId = user.uid,
                         onClick = { selectedConversationId = conversation.conversationId },
                         onDelete = {
-                            scope.launch {
-                                status = try {
-                                    conversationRepository.deleteConversationForUser(
-                                        conversationId = conversation.conversationId,
-                                        currentUserId = user.uid
-                                    )
-                                    "Conversation deleted for you"
-                                } catch (e: Exception) {
-                                    "Delete conversation failed: ${e.message}"
-                                }
-                            }
+                            conversationPendingDelete = conversation
                         }
                     )
                 }
