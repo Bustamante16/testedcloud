@@ -51,6 +51,11 @@ fun ChatHomeScreen(
         .observeConversations(user.uid)
         .collectAsState(initial = emptyList())
 
+    val currentUserEmail = user.email?.trim()?.lowercase() ?: ""
+    val isSelfConversationAttempt = otherUserEmail.isNotBlank() &&
+        currentUserEmail.isNotBlank() &&
+        otherUserEmail == currentUserEmail
+
     if (selectedConversationId != null) {
         ChatScreen(
             currentUserId = user.uid,
@@ -156,6 +161,14 @@ fun ChatHomeScreen(
             singleLine = true
         )
 
+        if (isSelfConversationAttempt) {
+            Text(
+                text = "You cannot create a conversation with yourself.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
         Button(
             onClick = {
                 scope.launch {
@@ -172,7 +185,7 @@ fun ChatHomeScreen(
                     }
                 }
             },
-            enabled = otherUserEmail.isNotBlank() && otherUserEmail != user.email,
+            enabled = otherUserEmail.isNotBlank() && !isSelfConversationAttempt,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Create conversation")
