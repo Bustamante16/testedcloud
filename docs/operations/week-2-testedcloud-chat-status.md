@@ -118,3 +118,40 @@ The current user-scoped delete behavior is now suitable for the MVP.
   - conversation_deleted_for_user
   - conversation_reactivated_by_message
   - message_sent
+
+## UX Improvements Completed
+
+Additional UI/UX improvements were completed after the user-scoped delete model was validated:
+
+- Added a confirmation dialog before deleting a conversation.
+- Kept the existing button label as `Delete conversation`.
+- Added validation feedback when a user attempts to create a conversation with their own email.
+- Confirmed the self-conversation validation disables the create action and displays a clear message.
+- Confirmed the delete confirmation dialog allows canceling without deleting.
+- Confirmed the delete confirmation dialog only deletes after explicit confirmation.
+
+## Current Week 2 Status
+
+Current status:
+
+    PASS
+
+TestedCloud Chat now has a stable MVP conversation behavior for:
+
+- Direct conversation reuse
+- User-scoped conversation delete
+- Timestamp-based message visibility
+- Conversation reactivation by new messages
+- Delete confirmation
+- Self-conversation validation
+
+## Next Recommended Work
+
+The next recommended focus is TestedCloud Chat analytics event preparation.
+
+Candidate events:
+
+- message_sent
+- conversation_created
+- conversation_deleted_for_user
+- conversation_reactivated_by_message
