@@ -1,0 +1,225 @@
+TestedCloud Chat — Analytics Collector Skeleton Validation
+
+Date: May 2026
+Scope: Cloud Run analytics collector skeleton, FastAPI validation endpoints, local API testing, privacy validation
+
+Objective
+---------
+
+Validate the first backend skeleton for the TestedCloud Chat analytics collector before enabling Pub/Sub publishing, Firebase ID token validation, BigQuery writes, or Android HTTP integration.
+
+Collector Location
+------------------
+
+Repository path:
+
+    cloudrun/testedcloud-chat-events-api
+
+Files created:
+
+    cloudrun/testedcloud-chat-events-api/app.py
+    cloudrun/testedcloud-chat-events-api/requirements.txt
+    cloudrun/testedcloud-chat-events-api/Dockerfile
+    cloudrun/testedcloud-chat-events-api/README.md
+
+Service Purpose
+---------------
+
+The collector receives privacy-aware analytics events from the TestedCloud Chat Android app.
+
+Current mode:
+
+    local-validation-only
+
+Current target:
+
+    Local FastAPI validation response only
+
+Not enabled yet:
+
+    Pub/Sub publishing
+    Firebase ID token validation
+    BigQuery writes
+    Cloud Run deployment
+    Android HTTP integration
+
+Implemented Endpoints
+---------------------
+
+GET /health
+
+Purpose:
+
+    Validate service health and current feature flags.
+
+POST /events
+
+Purpose:
+
+    Accept and validate analytics event payloads.
+
+Supported MVP event types:
+
+    conversation_created
+    message_sent
+    conversation_deleted_for_user
+
+Deferred event type:
+
+    conversation_reactivated_by_message
+
+Local Runtime
+-------------
+
+Local command used:
+
+    cd ~/testedcloud/cloudrun/testedcloud-chat-events-api
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    uvicorn app:app --reload --port 8088
+
+Local Validation Results
+------------------------
+
+Health check command:
+
+    curl -i http://localhost:8088/health
+
+Result:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    health: healthy
+    service: testedcloud-chat-events-api
+    version: 0.1.0
+    pubsub_enabled: false
+    firebase_token_validation_enabled: false
+
+Status:
+
+    PASS
+
+Valid Event Test
+----------------
+
+Command:
+
+    curl -i -X POST http://localhost:8088/events \
+      -H "Content-Type: application/json" \
+      -d '{"event_type":"message_sent","source":"testedcloud-chat-android","origin":"firebase","user_id":"uid_test_user","conversation_id":"conversation_test","created_at":"2026-05-14T12:05:00Z","metadata":{"conversation_type":"direct","message_length":42}}'
+
+Result:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    accepted: true
+    event_type: message_sent
+    target: local-validation-only
+    pubsub_published: false
+
+Status:
+
+    PASS
+
+Sensitive Metadata Rejection Test
+---------------------------------
+
+Command:
+
+    curl -i -X POST http://localhost:8088/events \
+      -H "Content-Type: application/json" \
+      -d '{"event_type":"message_sent","source":"testedcloud-chat-android","origin":"firebase","user_id":"uid_test_user","conversation_id":"conversation_test","created_at":"2026-05-14T12:05:00Z","metadata":{"conversation_type":"direct","message_text":"this should be rejected"}}'
+
+Expected result:
+
+    HTTP/1.1 400 Bad Request
+
+Expected error:
+
+    sensitive_metadata_not_allowed
+
+Status:
+
+    PASS
+
+Privacy Behavior
+----------------
+
+The collector rejects metadata keys that may contain sensitive content.
+
+Blocked metadata examples:
+
+    message_text
+    text
+    body
+    email
+    recipient_email
+    participant_email
+    participant_emails
+    display_name
+    participant_display_name
+    participant_display_names
+    token
+    auth_token
+    id_token
+    password
+
+This protects the analytics pipeline from accidentally receiving message content, participant emails, tokens, or other sensitive values.
+
+Validation Logic
+----------------
+
+The collector currently validates:
+
+    event_type is supported
+    source is testedcloud-chat-android
+    user_id is present
+    created_at is present
+    conversation_id is present for supported conversation/message events
+    message_sent includes metadata.message_length
+    conversation_deleted_for_user includes delete_scope = for_me
+    conversation_deleted_for_user includes delete_model = deletedAtByUser
+    sensitive metadata keys are rejected
+
+Architecture Alignment
+----------------------
+
+This collector skeleton aligns with the TestedCloud target architecture:
+
+    TestedCloud Chat Android App
+    -> Cloud Run Analytics Collector
+    -> Pub/Sub testedcloud-chat-events
+    -> Cloud Run Consumer
+    -> BigQuery testedcloud_chat.events
+    -> Looker Studio
+
+Current phase validates only the collector API contract.
+
+Final Result
+------------
+
+Collector skeleton validation result:
+
+    PASS
+
+The FastAPI collector skeleton is ready for the next phase: enabling Pub/Sub publishing in the central TestedCloud project.
+
+Next Recommended Phase
+----------------------
+
+Enable Pub/Sub publishing.
+
+Planned tasks:
+
+    Create Pub/Sub topic testedcloud-chat-events in majestic-layout-255620
+    Create service account testedcloud-chat-events-api-sa
+    Grant Pub/Sub Publisher on testedcloud-chat-events
+    Add google-cloud-pubsub dependency
+    Publish validated events to Pub/Sub
+    Keep local validation tests
+    Add Cloud Run deployment configuration
