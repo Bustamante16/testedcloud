@@ -299,26 +299,51 @@ Required role:
 
 Recommended table:
 
-    majestic-layout-255620-b88b2.testedcloud_chat.events
+    majestic-layout-255620.testedcloud_chat.events
 
-Potential issue:
+## 10.1 Project Boundary Decision
 
-    The Firebase project is `majestic-layout-255620-b88b2`, while TestedCloud Core uses `majestic-layout-255620`.
+Decision:
 
-Decision needed:
+    Use the central TestedCloud project `majestic-layout-255620` for the Chat analytics pipeline.
 
-    Option A — Keep chat analytics inside Firebase/GCP project `majestic-layout-255620-b88b2`
-    Option B — Send chat analytics into TestedCloud Core project `majestic-layout-255620`
-    Option C — Use separate datasets and document project boundary clearly
+Firebase/Auth/Firestore project:
 
-Recommended MVP option:
+    majestic-layout-255620-b88b2
 
-    Use the same Firebase project for initial chat analytics:
-    `majestic-layout-255620-b88b2`
+Central TestedCloud analytics project:
 
-Reason:
+    majestic-layout-255620
 
-    It avoids cross-project IAM complexity during the MVP.
+Rationale:
+
+    TestedCloud Chat should demonstrate that a real Firebase-backed Android app can emit operational/product events into the broader TestedCloud analytics platform.
+
+    Keeping Pub/Sub, Cloud Run analytics services, BigQuery, Looker Studio, IAM evidence, monitoring, and DLQ handling in `majestic-layout-255620` keeps the portfolio story aligned with TestedCloud Core.
+
+Project responsibility split:
+
+|Area|Project|Purpose|
+|-|-|-|
+|Firebase Authentication|majestic-layout-255620-b88b2|Android user identity|
+|Cloud Firestore|majestic-layout-255620-b88b2|Chat operational data|
+|Android google-services.json|majestic-layout-255620-b88b2|Firebase Android configuration|
+|Firestore rules|majestic-layout-255620-b88b2|Chat data authorization|
+|Cloud Run analytics collector|majestic-layout-255620|Central event ingestion|
+|Pub/Sub chat analytics topic|majestic-layout-255620|Central event transport|
+|Cloud Run chat analytics consumer|majestic-layout-255620|Central event processing|
+|BigQuery chat analytics dataset|majestic-layout-255620|Central analytics storage|
+|Looker Studio dashboard|majestic-layout-255620|Central analytics visualization|
+
+Authentication implication:
+
+    The Cloud Run analytics collector in `majestic-layout-255620` should validate Firebase ID tokens issued by the Firebase project `majestic-layout-255620-b88b2`.
+
+    The collector should verify that the token UID matches the event `user_id`.
+
+Recommended table:
+
+    majestic-layout-255620.testedcloud_chat.events
 
 ## 11. BigQuery Schema
 
