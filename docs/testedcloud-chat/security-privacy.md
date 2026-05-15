@@ -852,3 +852,26 @@ Portfolio value:
 * Shows least-privilege IAM thinking.
 * Shows a realistic path toward Google Play readiness.
 
+
+## User-Scoped Conversation Delete Security Model
+
+TestedCloud Chat implements conversation deletion as a user-scoped soft delete.
+
+The Android client does not physically delete conversation documents from Firestore.
+
+Instead, the app records a per-user delete timestamp:
+
+    deletedAtByUser.<uid> = timestamp
+
+Security behavior:
+
+- A user can delete a conversation only for themselves.
+- A user cannot delete the conversation for another participant.
+- A user cannot physically delete the conversation document from the Android client.
+- Previous messages are hidden from the deleting user based on their delete timestamp.
+- New messages after the delete timestamp can reactivate the conversation for that user.
+- Conversation reactivation is based on lastMessageAt being newer than deletedAtByUser.<uid>.
+
+This model prevents one participant from destroying shared conversation history for another participant.
+
+Physical deletion, if needed, should be handled later by a trusted backend/admin process with explicit retention rules.
