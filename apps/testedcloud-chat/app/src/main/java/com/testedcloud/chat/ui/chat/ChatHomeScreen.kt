@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseUser
 import com.testedcloud.chat.auth.AuthRepository
+import com.testedcloud.chat.data.analytics.AnalyticsEvent
+import com.testedcloud.chat.data.analytics.AnalyticsRepository
+import com.testedcloud.chat.data.analytics.LogcatAnalyticsRepository
 import com.testedcloud.chat.data.conversations.Conversation
 import com.testedcloud.chat.data.conversations.ConversationRepository
 import kotlinx.coroutines.launch
@@ -38,6 +41,7 @@ fun ChatHomeScreen(
     user: FirebaseUser,
     authRepository: AuthRepository = AuthRepository(),
     conversationRepository: ConversationRepository = ConversationRepository(),
+    analyticsRepository: AnalyticsRepository = LogcatAnalyticsRepository(),
     onSignedOut: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -93,6 +97,21 @@ fun ChatHomeScreen(
                                         conversationId = conversationToDelete.conversationId,
                                         currentUserId = user.uid
                                     )
+
+                                    runCatching {
+                                        analyticsRepository.track(
+                                            AnalyticsEvent(
+                                                eventType = "conversation_deleted_for_user",
+                                                userId = user.uid,
+                                                conversationId = conversationToDelete.conversationId,
+                                                metadata = mapOf(
+                                                    "delete_scope" to "for_me",
+                                                    "delete_model" to "deletedAtByUser"
+                                                )
+                                            )
+                                        )
+                                    }
+
                                     "Conversation deleted for you"
                                 } catch (e: Exception) {
                                     "Delete conversation failed: ${e.message}"
@@ -177,6 +196,21 @@ fun ChatHomeScreen(
                             currentUserId = user.uid,
                             otherUserEmail = otherUserEmail
                         )
+
+                        runCatching {
+                            analyticsRepository.track(
+                                AnalyticsEvent(
+                                    eventType = "conversation_created",
+                                    userId = user.uid,
+                                    conversationId = conversationId,
+                                    metadata = mapOf(
+                                        "conversation_type" to "direct",
+                                        "participant_count" to 2
+                                    )
+                                )
+                            )
+                        }
+
                         otherUserEmail = ""
                         selectedConversationId = conversationId
                         "Conversation ready: $conversationId"

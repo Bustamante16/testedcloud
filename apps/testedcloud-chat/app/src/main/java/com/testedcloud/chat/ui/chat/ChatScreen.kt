@@ -24,6 +24,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.testedcloud.chat.data.analytics.AnalyticsEvent
+import com.testedcloud.chat.data.analytics.AnalyticsRepository
+import com.testedcloud.chat.data.analytics.LogcatAnalyticsRepository
 import com.testedcloud.chat.data.conversations.ChatMessage
 import com.testedcloud.chat.data.conversations.ConversationRepository
 import kotlinx.coroutines.launch
@@ -40,6 +43,7 @@ fun ChatScreen(
     currentUserId: String,
     conversationId: String,
     conversationRepository: ConversationRepository = ConversationRepository(),
+    analyticsRepository: AnalyticsRepository = LogcatAnalyticsRepository(),
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -102,11 +106,28 @@ fun ChatScreen(
             onClick = {
                 scope.launch {
                     status = try {
+                        val sentMessageLength = messageText.trim().length
+
                         conversationRepository.sendMessage(
                             conversationId = conversationId,
                             senderId = currentUserId,
                             text = messageText
                         )
+
+                        runCatching {
+                            analyticsRepository.track(
+                                AnalyticsEvent(
+                                    eventType = "message_sent",
+                                    userId = currentUserId,
+                                    conversationId = conversationId,
+                                    metadata = mapOf(
+                                        "conversation_type" to "direct",
+                                        "message_length" to sentMessageLength
+                                    )
+                                )
+                            )
+                        }
+
                         messageText = ""
                         "Message sent"
                     } catch (e: Exception) {
