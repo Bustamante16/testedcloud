@@ -1,0 +1,134 @@
+TestedCloud Chat — Local Analytics Foundation Validation
+
+Date: May 2026
+Scope: Android local analytics event model, Logcat analytics repository, and non-blocking event emission
+
+Objective
+---------
+
+Validate the first local analytics foundation for TestedCloud Chat before connecting the app to Cloud Run, Pub/Sub, BigQuery, or Looker Studio.
+
+This phase intentionally keeps analytics local-only.
+
+Implemented Components
+----------------------
+
+The following Android analytics components were added:
+
+    AnalyticsEvent
+    AnalyticsRepository
+    LogcatAnalyticsRepository
+
+Package:
+
+    com.testedcloud.chat.data.analytics
+
+Files:
+
+    apps/testedcloud-chat/app/src/main/java/com/testedcloud/chat/data/analytics/AnalyticsEvent.kt
+    apps/testedcloud-chat/app/src/main/java/com/testedcloud/chat/data/analytics/AnalyticsRepository.kt
+    apps/testedcloud-chat/app/src/main/java/com/testedcloud/chat/data/analytics/LogcatAnalyticsRepository.kt
+
+Implemented Events
+------------------
+
+The following events are emitted locally to Logcat:
+
+    conversation_created
+    message_sent
+    conversation_deleted_for_user
+
+Current Output Destination
+--------------------------
+
+Current destination:
+
+    Android Logcat
+
+Logcat tag:
+
+    TestedCloudAnalytics
+
+Cloud destination:
+
+    Not implemented yet
+
+The app does not currently send analytics events to Cloud Run, Pub/Sub, BigQuery, or any external analytics endpoint.
+
+Reliability Requirement
+-----------------------
+
+Analytics must not block core chat functionality.
+
+The implementation uses runCatching around analytics emission so that analytics failures do not prevent:
+
+    Conversation creation
+    Message sending
+    User-scoped conversation delete
+
+Validated Behavior
+------------------
+
+Validated manually in Android Studio:
+
+1. App builds successfully.
+2. Creating/opening a direct conversation still works.
+3. Sending messages still works.
+4. User-scoped delete still works.
+5. Logcat analytics events are emitted after successful actions.
+6. Analytics events do not change Firestore rules.
+7. Analytics events do not require new GCP services yet.
+
+Validation Result
+-----------------
+
+Result:
+
+    PASS
+
+The local analytics foundation is ready for the next phase.
+
+Next Recommended Phase
+----------------------
+
+Recommended next phase:
+
+    Add a Cloud Run analytics collector API.
+
+Future flow:
+
+    TestedCloud Chat Android App
+    -> Cloud Run analytics collector
+    -> Pub/Sub topic
+    -> Cloud Run consumer
+    -> BigQuery
+    -> Looker Studio
+
+Future events to support:
+
+    message_sent
+    conversation_created
+    conversation_deleted_for_user
+    conversation_reactivated_by_message
+
+Privacy Notes
+-------------
+
+Analytics events must not include:
+
+    Full message text
+    Participant emails
+    Participant display names
+    Contact lists
+    Phone numbers
+    Authentication tokens
+    Raw exception traces containing secrets
+
+Current local events are intended to use:
+
+    Firebase UID
+    Conversation ID
+    Event type
+    Timestamp
+    Message length
+    Non-sensitive metadata
