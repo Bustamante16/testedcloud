@@ -65,9 +65,11 @@ service cloud.firestore {
           ||
           (
             // Delete conversation for current user using a user-scoped timestamp.
+            // The Android client does not physically delete or globally delete
+            // the conversation. It only records the authenticated user's
+            // deletion timestamp.
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              "deletedAtByUser",
-              "status"
+              "deletedAtByUser"
             ])
             && request.resource.data.deletedAtByUser is map
             && request.resource.data.deletedAtByUser.keys().hasOnly(resource.data.participantIds)
@@ -75,13 +77,6 @@ service cloud.firestore {
             && (
               !resource.data.keys().hasAny(["deletedAtByUser"])
               || request.resource.data.deletedAtByUser.diff(resource.data.deletedAtByUser).affectedKeys().hasOnly([request.auth.uid])
-            )
-            && (
-              request.resource.data.status == resource.data.status
-              || (
-                request.resource.data.status == "deleted"
-                && request.resource.data.deletedAtByUser.keys().hasAll(resource.data.participantIds)
-              )
             )
           )
         );

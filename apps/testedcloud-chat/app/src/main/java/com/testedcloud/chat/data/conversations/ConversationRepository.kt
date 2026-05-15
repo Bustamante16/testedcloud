@@ -100,11 +100,8 @@ class ConversationRepository(
                         val deletedAt = conversation.deletedAtByUser[currentUserId]
                         val lastActivityAt = conversation.lastMessageAt ?: conversation.updatedAt
 
-                        conversation.status != "deleted" &&
-                            (
-                                deletedAt == null ||
-                                    isAfterTimestamp(lastActivityAt, deletedAt)
-                            )
+                        deletedAt == null ||
+                            isAfterTimestamp(lastActivityAt, deletedAt)
                     }
                     ?.sortedByDescending { conversation ->
                         conversation.updatedAt?.seconds ?: 0L
@@ -361,18 +358,9 @@ class ConversationRepository(
         val now = Timestamp.now()
         val deletedAtByUser = readTimestampMap(snapshot.get("deletedAtByUser"))
 
-        val allParticipantsDeleted = participantIds.isNotEmpty() &&
-            participantIds.all { participantId ->
-                participantId == currentUserId || participantId in deletedAtByUser
-            }
-
-        val updates = mutableMapOf<String, Any>(
+        val updates = mapOf<String, Any>(
             "deletedAtByUser.$currentUserId" to now
         )
-
-        if (allParticipantsDeleted) {
-            updates["status"] = "deleted"
-        }
 
         conversationRef.update(updates).await()
     }
