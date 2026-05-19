@@ -1,0 +1,222 @@
+TestedCloud Chat — Consumer to BigQuery Validation
+
+Date: May 2026
+Scope: TestedCloud Chat analytics consumer, Pub/Sub-style push payload, BigQuery insert validation
+
+Objective
+---------
+
+Validate that the TestedCloud Chat analytics consumer can receive a Pub/Sub-style push envelope, decode the analytics event payload, validate it, and insert the event into BigQuery.
+
+Central Analytics Project
+-------------------------
+
+Project:
+
+    majestic-layout-255620
+
+BigQuery dataset:
+
+    testedcloud_chat
+
+BigQuery table:
+
+    events
+
+Target table:
+
+    majestic-layout-255620.testedcloud_chat.events
+
+Consumer Path
+-------------
+
+Repository path:
+
+    cloudrun/testedcloud-chat-consumer
+
+Consumer files:
+
+    cloudrun/testedcloud-chat-consumer/app.py
+    cloudrun/testedcloud-chat-consumer/requirements.txt
+    cloudrun/testedcloud-chat-consumer/Dockerfile
+    cloudrun/testedcloud-chat-consumer/README.md
+    cloudrun/testedcloud-chat-consumer/bigquery_schema.json
+
+BigQuery Resources
+------------------
+
+Dataset created:
+
+    majestic-layout-255620:testedcloud_chat
+
+Table created:
+
+    majestic-layout-255620:testedcloud_chat.events
+
+Table schema includes:
+
+    event_id
+    event_type
+    source
+    origin
+    user_id
+    conversation_id
+    message_id
+    created_at
+    received_at
+    processed_at
+    metadata_json
+    validation_status
+
+Service Account
+---------------
+
+Consumer service account:
+
+    testedcloud-chat-consumer-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+IAM roles granted:
+
+    roles/bigquery.dataEditor
+    roles/bigquery.jobUser
+
+Note:
+
+    The first IAM binding attempt failed because the service account had just been created and IAM had not fully propagated it yet.
+
+    After waiting/retrying, the service account was described successfully and the IAM bindings were applied.
+
+Dataset-Level IAM Note
+----------------------
+
+An attempt was made to apply dataset-level BigQuery Data Editor using:
+
+    bq add-iam-policy-binding
+
+The command returned:
+
+    This feature requires allowlisting.
+
+For the MVP, project-level BigQuery Data Editor was used.
+
+Future hardening:
+
+    Revisit dataset-level IAM or alternate least-privilege access model.
+
+Local Runtime
+-------------
+
+Consumer local run command:
+
+    cd ~/testedcloud/cloudrun/testedcloud-chat-consumer
+    source .venv/bin/activate
+
+    export GCP_PROJECT_ID=majestic-layout-255620
+    export BIGQUERY_DATASET_ID=testedcloud_chat
+    export BIGQUERY_TABLE_ID=events
+
+    uvicorn app:app --reload --port 8090
+
+Health Check
+------------
+
+Command:
+
+    curl -i http://localhost:8090/health
+
+Result:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    health: healthy
+    service: testedcloud-chat-consumer
+    version: 0.1.0
+    target: majestic-layout-255620.testedcloud_chat.events
+
+Status:
+
+    PASS
+
+Local Pub/Sub-Style Push Test
+-----------------------------
+
+The local test generated a Pub/Sub push envelope with base64-encoded JSON in:
+
+    message.data
+
+The decoded payload represented:
+
+    event_type: message_sent
+    source: testedcloud-chat-android
+    user_id: uid_test_user
+    conversation_id: conversation_test
+    metadata.message_length: 42
+
+POST command:
+
+    curl -i -X POST http://localhost:8090/ \
+      -H "Content-Type: application/json" \
+      --data-binary @/tmp/testedcloud_chat_pubsub_envelope.json
+
+Result:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    processed: true
+    event_type: message_sent
+    target: majestic-layout-255620.testedcloud_chat.events
+
+Status:
+
+    PASS
+
+BigQuery Validation
+-------------------
+
+BigQuery query confirmed the inserted row.
+
+Validated event:
+
+    event_id: ca166c2a-221f-4678-b0b4-26c14103da4a
+    event_type: message_sent
+    source: testedcloud-chat-android
+    user_id: uid_test_user
+    conversation_id: conversation_test
+    validation_status: valid
+
+Validated metadata_json:
+
+    {"conversation_type": "direct", "message_length": 42}
+
+Validated Flow
+--------------
+
+Current validated flow:
+
+    Pub/Sub-style payload
+    -> testedcloud-chat-consumer local
+    -> BigQuery testedcloud_chat.events
+
+Final Result
+------------
+
+Consumer to BigQuery validation result:
+
+    PASS
+
+The TestedCloud Chat analytics consumer can now process Pub/Sub-style analytics events and write them into BigQuery.
+
+Next Recommended Phase
+----------------------
+
+Deploy the consumer to Cloud Run and connect it to Pub/Sub using a push subscription.
+
+Target flow:
+
+    testedcloud-chat-events Pub/Sub topic
+    -> testedcloud-chat-consumer Cloud Run service
+    -> BigQuery testedcloud_chat.events
