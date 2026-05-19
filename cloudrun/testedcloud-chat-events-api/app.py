@@ -1,8 +1,11 @@
+import json
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
+from google.cloud import pubsub_v1
 from pydantic import BaseModel, Field
 
 
@@ -11,6 +14,12 @@ SUPPORTED_EVENT_TYPES = {
     "message_sent",
     "conversation_deleted_for_user",
 }
+
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "")
+PUBSUB_TOPIC_ID = os.getenv("PUBSUB_TOPIC_ID", "")
+PUBSUB_ENABLED = os.getenv("PUBSUB_ENABLED", "false").lower() == "true"
+
+publisher = pubsub_v1.PublisherClient() if PUBSUB_ENABLED else None
 
 
 class AnalyticsEvent(BaseModel):
@@ -142,13 +151,75 @@ def validate_event(event: AnalyticsEvent) -> None:
 
 
 
+
+def event_to_payload(event: AnalyticsEvent, received_at: str) -> Dict[str, Any]:
+    return {
+        "event_id": event.event_id,
+        "event_type": event.event_type,
+        "source": event.source,
+        "origin": event.origin,
+        "user_id": event.user_id,
+        "conversation_id": event.conversation_id,
+        "message_id": event.message_id,
+        "created_at": event.created_at,
+        "received_at": received_at,
+        "metadata": event.metadata,
+    }
+
+
+def publish_event(event: AnalyticsEvent, received_at: str) -> str:
+    if not PUBSUB_ENABLED:
+        return ""
+
+    if not GCP_PROJECT_ID or not PUBSUB_TOPIC_ID:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "accepted": False,
+                "error": "pubsub_config_missing",
+            },
+        )
+
+    if publisher is None:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "accepted": False,
+                "error": "pubsub_publisher_not_initialized",
+            },
+        )
+
+    topic_path = publisher.topic_path(GCP_PROJECT_ID, PUBSUB_TOPIC_ID)
+    payload = event_to_payload(event, received_at)
+    data = json.dumps(payload, default=str).encode("utf-8")
+
+    try:
+        future = publisher.publish(
+            topic_path,
+            data,
+            event_type=event.event_type,
+            source=event.source,
+        )
+        return future.result(timeout=10)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "accepted": False,
+                "error": "pubsub_publish_failed",
+                "message": str(exc),
+            },
+        ) from exc
+
 @app.get("/health")
 def health() -> Dict[str, Any]:
     return {
         "health": "healthy",
         "service": "testedcloud-chat-events-api",
         "version": "0.1.0",
-        "pubsub_enabled": False,
+        "pubsub_enabled": PUBSUB_ENABLED,
+        "pubsub_topic": PUBSUB_TOPIC_ID if PUBSUB_ENABLED else None,
+        "gcp_project": GCP_PROJECT_ID if PUBSUB_ENABLED else None,
         "firebase_token_validation_enabled": False,
         "timestamp": utc_now_iso(),
     }
@@ -158,11 +229,16 @@ def health() -> Dict[str, Any]:
 def collect_event(event: AnalyticsEvent) -> Dict[str, Any]:
     validate_event(event)
 
+    received_at = utc_now_iso()
+    message_id = publish_event(event, received_at)
+
     return {
         "accepted": True,
         "event_id": event.event_id,
         "event_type": event.event_type,
-        "target": "local-validation-only",
-        "pubsub_published": False,
-        "received_at": utc_now_iso(),
+        "target": "google-cloud-pubsub" if PUBSUB_ENABLED else "local-validation-only",
+        "pubsub_published": PUBSUB_ENABLED,
+        "pubsub_message_id": message_id if PUBSUB_ENABLED else None,
+        "topic": PUBSUB_TOPIC_ID if PUBSUB_ENABLED else None,
+        "received_at": received_at,
     }

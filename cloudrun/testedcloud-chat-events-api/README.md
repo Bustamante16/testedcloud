@@ -83,3 +83,20 @@ Do not send:
     -> Cloud Run Consumer
     -> BigQuery testedcloud_chat.events
     -> Looker Studio
+
+
+## Pub/Sub Mode
+
+To enable Pub/Sub publishing locally or in Cloud Run, set:
+
+    PUBSUB_ENABLED=true
+    GCP_PROJECT_ID=majestic-layout-255620
+    PUBSUB_TOPIC_ID=testedcloud-chat-events
+
+When Pub/Sub is enabled, POST /events publishes validated events to:
+
+    projects/majestic-layout-255620/topics/testedcloud-chat-events
+
+Current recommended service account for Cloud Run:
+
+    testedcloud-chat-events-api-sa@majestic-layout-255620.iam.gserviceaccount.com
