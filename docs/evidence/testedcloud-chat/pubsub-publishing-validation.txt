@@ -1,0 +1,161 @@
+TestedCloud Chat — Pub/Sub Publishing Validation
+
+Date: May 2026
+Scope: TestedCloud Chat analytics collector, Pub/Sub publishing, local FastAPI validation, central TestedCloud project
+
+Objective
+---------
+
+Validate that the TestedCloud Chat analytics collector can publish validated analytics events to Google Cloud Pub/Sub.
+
+Central Analytics Project
+-------------------------
+
+Project:
+
+    majestic-layout-255620
+
+Pub/Sub topic:
+
+    testedcloud-chat-events
+
+Collector path:
+
+    cloudrun/testedcloud-chat-events-api
+
+Current collector mode tested:
+
+    Local FastAPI collector with Pub/Sub publishing enabled
+
+Environment Variables
+---------------------
+
+The collector was started with:
+
+    PUBSUB_ENABLED=true
+    GCP_PROJECT_ID=majestic-layout-255620
+    PUBSUB_TOPIC_ID=testedcloud-chat-events
+
+Local Run Command
+-----------------
+
+    cd ~/testedcloud/cloudrun/testedcloud-chat-events-api
+    source .venv/bin/activate
+
+    export PUBSUB_ENABLED=true
+    export GCP_PROJECT_ID=majestic-layout-255620
+    export PUBSUB_TOPIC_ID=testedcloud-chat-events
+
+    uvicorn app:app --reload --port 8088
+
+Health Check
+------------
+
+Command:
+
+    curl -i http://localhost:8088/health
+
+Result:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    health: healthy
+    service: testedcloud-chat-events-api
+    version: 0.1.0
+    pubsub_enabled: true
+    pubsub_topic: testedcloud-chat-events
+    gcp_project: majestic-layout-255620
+    firebase_token_validation_enabled: false
+
+Status:
+
+    PASS
+
+Pub/Sub Publish Test
+--------------------
+
+Command:
+
+    curl -i -X POST http://localhost:8088/events \
+      -H "Content-Type: application/json" \
+      -d '{"event_type":"message_sent","source":"testedcloud-chat-android","origin":"firebase","user_id":"uid_test_user","conversation_id":"conversation_test","created_at":"2026-05-19T15:40:00Z","metadata":{"conversation_type":"direct","message_length":42}}'
+
+Result:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    accepted: true
+    event_type: message_sent
+    target: google-cloud-pubsub
+    pubsub_published: true
+    pubsub_message_id: 19120230638391156
+    topic: testedcloud-chat-events
+
+Status:
+
+    PASS
+
+Validated Flow
+--------------
+
+Validated flow:
+
+    Local FastAPI collector
+    -> POST /events
+    -> payload validation
+    -> Google Cloud Pub/Sub
+    -> topic testedcloud-chat-events
+    -> project majestic-layout-255620
+
+Current Limitations
+-------------------
+
+Not implemented yet:
+
+    Cloud Run deployment
+    Firebase ID token validation
+    Pub/Sub push subscription
+    Chat analytics consumer
+    BigQuery insert
+    Looker Studio dashboard
+
+Current collector feature flags:
+
+    pubsub_enabled: true during Pub/Sub validation
+    firebase_token_validation_enabled: false
+
+Security Notes
+--------------
+
+The collector still validates event shape and rejects sensitive metadata.
+
+Firebase ID token validation is not implemented yet.
+
+The next production-style hardening step is:
+
+    Validate Firebase ID token from the Android app
+    Confirm token.uid == event.user_id
+
+Final Result
+------------
+
+Pub/Sub publishing validation result:
+
+    PASS
+
+The TestedCloud Chat analytics collector can now publish validated analytics events to the central TestedCloud Pub/Sub topic.
+
+Next Recommended Phase
+----------------------
+
+Create the TestedCloud Chat analytics consumer.
+
+Target flow:
+
+    Pub/Sub testedcloud-chat-events
+    -> Cloud Run consumer testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
