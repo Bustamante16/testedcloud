@@ -1,0 +1,225 @@
+TestedCloud Chat — Full Cloud Analytics Pipeline Validation
+
+Date: May 21, 2026
+Scope: Cloud Run collector, Pub/Sub, Cloud Run consumer, and BigQuery end-to-end validation
+
+Objective
+---------
+
+Validate the full cloud-based TestedCloud Chat analytics pipeline.
+
+Validated flow:
+
+    Cloud Run testedcloud-chat-events-api
+    -> Pub/Sub testedcloud-chat-events
+    -> Pub/Sub push subscription testedcloud-chat-consumer-sub
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
+
+Central Analytics Project
+-------------------------
+
+Project:
+
+    majestic-layout-255620
+
+Region:
+
+    us-central1
+
+Cloud Run Collector
+-------------------
+
+Service:
+
+    testedcloud-chat-events-api
+
+Validated revision:
+
+    testedcloud-chat-events-api-00001-k2m
+
+Service URL:
+
+    https://testedcloud-chat-events-api-hry4rawqia-uc.a.run.app
+
+Runtime service account:
+
+    testedcloud-chat-events-api-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+Environment variables:
+
+    PUBSUB_ENABLED=true
+    GCP_PROJECT_ID=majestic-layout-255620
+    PUBSUB_TOPIC_ID=testedcloud-chat-events
+
+Collector Health Check
+----------------------
+
+Command:
+
+    TOKEN=$(gcloud auth print-identity-token)
+
+    curl -i "$COLLECTOR_URL/health" \
+      -H "Authorization: Bearer ${TOKEN}"
+
+Result:
+
+    HTTP/2 200
+
+Response summary:
+
+    health: healthy
+    service: testedcloud-chat-events-api
+    version: 0.1.0
+    pubsub_enabled: true
+    pubsub_topic: testedcloud-chat-events
+    gcp_project: majestic-layout-255620
+    firebase_token_validation_enabled: false
+
+Status:
+
+    PASS
+
+Collector Publish Test
+----------------------
+
+Command:
+
+    curl -i -X POST "$COLLECTOR_URL/events" \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d '{"event_type":"message_sent","source":"testedcloud-chat-android","origin":"firebase","user_id":"uid_full_cloud_e2e_test","conversation_id":"conversation_full_cloud_e2e_test","created_at":"2026-05-21T16:00:00Z","metadata":{"conversation_type":"direct","message_length":88}}'
+
+Result:
+
+    HTTP/2 200
+
+Response summary:
+
+    accepted: true
+    event_id: 8563839e-cb74-4c21-b42d-c853b6408ba7
+    event_type: message_sent
+    target: google-cloud-pubsub
+    pubsub_published: true
+    pubsub_message_id: 19577674770841558
+    topic: testedcloud-chat-events
+
+Status:
+
+    PASS
+
+Pub/Sub
+-------
+
+Topic:
+
+    testedcloud-chat-events
+
+Push subscription:
+
+    testedcloud-chat-consumer-sub
+
+Dead-letter topic:
+
+    testedcloud-chat-events-dlq
+
+Cloud Run Consumer
+------------------
+
+Service:
+
+    testedcloud-chat-consumer
+
+Service URL:
+
+    https://testedcloud-chat-consumer-hry4rawqia-uc.a.run.app
+
+Runtime service account:
+
+    testedcloud-chat-consumer-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+Cloud Run logs showed:
+
+    testedcloud-chat-events-api:
+        POST /events 200
+
+    testedcloud-chat-consumer:
+        POST / 200
+
+Status:
+
+    PASS
+
+BigQuery Validation
+-------------------
+
+Query:
+
+    SELECT
+      event_id,
+      event_type,
+      source,
+      user_id,
+      conversation_id,
+      created_at,
+      received_at,
+      processed_at,
+      metadata_json,
+      validation_status
+    FROM `majestic-layout-255620.testedcloud_chat.events`
+    WHERE user_id = "uid_full_cloud_e2e_test"
+    ORDER BY processed_at DESC
+    LIMIT 10
+
+Validated row:
+
+    event_id: 8563839e-cb74-4c21-b42d-c853b6408ba7
+    event_type: message_sent
+    source: testedcloud-chat-android
+    user_id: uid_full_cloud_e2e_test
+    conversation_id: conversation_full_cloud_e2e_test
+    created_at: 2026-05-21 16:00:00
+    received_at: 2026-05-21 16:06:55
+    processed_at: 2026-05-21 16:07:00
+    metadata_json: {"conversation_type": "direct", "message_length": 88}
+    validation_status: valid
+
+Status:
+
+    PASS
+
+Final Result
+------------
+
+Full cloud analytics pipeline validation result:
+
+    PASS
+
+The TestedCloud Chat cloud analytics pipeline is now operational from Cloud Run collector to BigQuery.
+
+Validated final flow:
+
+    Cloud Run collector
+    -> Pub/Sub
+    -> Cloud Run consumer
+    -> BigQuery
+
+Current Limitations
+-------------------
+
+Firebase ID token validation is not implemented yet.
+
+The collector currently accepts authenticated Cloud Run requests using Google identity token during testing.
+
+Android app integration is not implemented yet.
+
+Next Recommended Phase
+----------------------
+
+Recommended next steps:
+
+    Add Firebase ID token validation to testedcloud-chat-events-api
+    Create Android HTTPAnalyticsRepository
+    Send real TestedCloud Chat analytics events from Android to Cloud Run collector
+    Add BigQuery views for dashboard metrics
+    Create Looker Studio dashboard
