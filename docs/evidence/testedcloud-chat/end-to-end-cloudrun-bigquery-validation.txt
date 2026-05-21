@@ -1,0 +1,270 @@
+TestedCloud Chat — End-to-End Cloud Run to BigQuery Validation
+
+Date: May 21, 2026
+Scope: Chat analytics collector, Pub/Sub, Pub/Sub push subscription, Cloud Run consumer, and BigQuery insert validation
+
+Objective
+---------
+
+Validate the end-to-end TestedCloud Chat analytics pipeline:
+
+    TestedCloud Chat collector
+    -> Pub/Sub testedcloud-chat-events
+    -> Pub/Sub push subscription testedcloud-chat-consumer-sub
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
+
+Central Analytics Project
+-------------------------
+
+Project:
+
+    majestic-layout-255620
+
+Region:
+
+    us-central1
+
+Pub/Sub topic:
+
+    testedcloud-chat-events
+
+Dead-letter topic:
+
+    testedcloud-chat-events-dlq
+
+Push subscription:
+
+    testedcloud-chat-consumer-sub
+
+Cloud Run consumer:
+
+    testedcloud-chat-consumer
+
+BigQuery target:
+
+    majestic-layout-255620.testedcloud_chat.events
+
+Cloud Run Consumer Deployment
+-----------------------------
+
+Cloud Run service:
+
+    testedcloud-chat-consumer
+
+Validated revision:
+
+    testedcloud-chat-consumer-00003-sqq
+
+Service URL:
+
+    https://testedcloud-chat-consumer-hry4rawqia-uc.a.run.app
+
+Runtime service account:
+
+    testedcloud-chat-consumer-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+The service is private and requires authenticated invocation.
+
+Health Check
+------------
+
+Command:
+
+    TOKEN=$(gcloud auth print-identity-token)
+
+    curl -i "$CONSUMER_URL/health" \
+      -H "Authorization: Bearer ${TOKEN}"
+
+Result:
+
+    HTTP/2 200
+
+Response summary:
+
+    health: healthy
+    service: testedcloud-chat-consumer
+    version: 0.1.0
+    target: majestic-layout-255620.testedcloud_chat.events
+
+Status:
+
+    PASS
+
+Pub/Sub Push Invoker
+--------------------
+
+Invoker service account:
+
+    tc-chat-ps-invoker@majestic-layout-255620.iam.gserviceaccount.com
+
+Cloud Run permission:
+
+    roles/run.invoker on testedcloud-chat-consumer
+
+Pub/Sub OIDC token permission:
+
+    roles/iam.serviceAccountTokenCreator granted to:
+
+    service-644725546932@gcp-sa-pubsub.iam.gserviceaccount.com
+
+Push Subscription Configuration
+-------------------------------
+
+Subscription:
+
+    testedcloud-chat-consumer-sub
+
+Topic:
+
+    projects/majestic-layout-255620/topics/testedcloud-chat-events
+
+Push endpoint:
+
+    https://testedcloud-chat-consumer-hry4rawqia-uc.a.run.app/
+
+OIDC service account:
+
+    tc-chat-ps-invoker@majestic-layout-255620.iam.gserviceaccount.com
+
+Dead-letter topic:
+
+    projects/majestic-layout-255620/topics/testedcloud-chat-events-dlq
+
+Retry policy:
+
+    minimumBackoff: 10s
+    maximumBackoff: 60s
+
+Max delivery attempts:
+
+    5
+
+State:
+
+    ACTIVE
+
+Collector Publish Test
+----------------------
+
+Command:
+
+    curl -i -X POST http://localhost:8088/events \
+      -H "Content-Type: application/json" \
+      -d '{"event_type":"message_sent","source":"testedcloud-chat-android","origin":"firebase","user_id":"uid_cloudrun_e2e_test","conversation_id":"conversation_cloudrun_e2e_test","created_at":"2026-05-21T15:45:00Z","metadata":{"conversation_type":"direct","message_length":77}}'
+
+Collector response:
+
+    HTTP/1.1 200 OK
+
+Response summary:
+
+    accepted: true
+    event_id: 6aa07c6c-c3f2-4d41-b613-8f9890b9a9bf
+    event_type: message_sent
+    target: google-cloud-pubsub
+    pubsub_published: true
+    pubsub_message_id: 19227098142815232
+    topic: testedcloud-chat-events
+
+Status:
+
+    PASS
+
+Cloud Run Consumer Logs
+-----------------------
+
+Cloud Run logs showed:
+
+    POST 200 https://testedcloud-chat-consumer-hry4rawqia-uc.a.run.app/
+    "POST / HTTP/1.1" 200 OK
+
+This confirms that Pub/Sub delivered the message to the private Cloud Run consumer using the configured push subscription and OIDC service account.
+
+Status:
+
+    PASS
+
+BigQuery Validation
+-------------------
+
+Query:
+
+    SELECT
+      event_id,
+      event_type,
+      source,
+      user_id,
+      conversation_id,
+      created_at,
+      received_at,
+      processed_at,
+      metadata_json,
+      validation_status
+    FROM `majestic-layout-255620.testedcloud_chat.events`
+    WHERE event_id = "6aa07c6c-c3f2-4d41-b613-8f9890b9a9bf"
+       OR user_id = "uid_cloudrun_e2e_test"
+    ORDER BY processed_at DESC
+    LIMIT 10
+
+Validated row:
+
+    event_id: 6aa07c6c-c3f2-4d41-b613-8f9890b9a9bf
+    event_type: message_sent
+    source: testedcloud-chat-android
+    user_id: uid_cloudrun_e2e_test
+    conversation_id: conversation_cloudrun_e2e_test
+    created_at: 2026-05-21 15:45:00
+    received_at: 2026-05-21 15:36:55
+    processed_at: 2026-05-21 15:36:57
+    metadata_json: {"conversation_type": "direct", "message_length": 77}
+    validation_status: valid
+
+Status:
+
+    PASS
+
+Validated End-to-End Flow
+-------------------------
+
+The following flow is now validated:
+
+    TestedCloud Chat collector local
+    -> Pub/Sub testedcloud-chat-events
+    -> Pub/Sub push subscription testedcloud-chat-consumer-sub
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
+
+Final Result
+------------
+
+End-to-end cloud analytics validation result:
+
+    PASS
+
+The TestedCloud Chat analytics pipeline can now move validated chat analytics events into the central TestedCloud BigQuery analytics dataset.
+
+Known Notes
+-----------
+
+Cloud Run source deployment initially failed because the build process used the Compute Engine default service account and required additional permissions.
+
+Permissions added for build/deploy path:
+
+    roles/storage.objectViewer
+    roles/artifactregistry.writer
+    roles/logging.logWriter
+
+Runtime service account remains:
+
+    testedcloud-chat-consumer-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+Next Recommended Phase
+----------------------
+
+Recommended next steps:
+
+    Deploy testedcloud-chat-events-api collector to Cloud Run
+    Add Firebase ID token validation
+    Replace Android LogcatAnalyticsRepository with HTTP analytics repository
+    Send real app analytics events to the collector
