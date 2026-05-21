@@ -495,3 +495,49 @@ Recommended next step:
     - no Pub/Sub publish yet
 
 This keeps the implementation small and testable before connecting Pub/Sub and BigQuery.
+
+## 18. Current Implementation Update — Cloud Consumer Validated
+
+The TestedCloud Chat analytics pipeline has now been partially implemented and validated.
+
+Validated cloud flow:
+
+    TestedCloud Chat collector local
+    -> Pub/Sub testedcloud-chat-events
+    -> Pub/Sub push subscription testedcloud-chat-consumer-sub
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
+
+Validated components:
+
+- Pub/Sub topic: testedcloud-chat-events
+- Pub/Sub DLQ topic: testedcloud-chat-events-dlq
+- Cloud Run consumer: testedcloud-chat-consumer
+- Push subscription: testedcloud-chat-consumer-sub
+- BigQuery dataset: testedcloud_chat
+- BigQuery table: events
+- Runtime service account: testedcloud-chat-consumer-sa
+- Pub/Sub push invoker service account: tc-chat-ps-invoker
+
+Validated event:
+
+    event_type: message_sent
+    user_id: uid_cloudrun_e2e_test
+    conversation_id: conversation_cloudrun_e2e_test
+    validation_status: valid
+
+Current limitation:
+
+    The collector is still running locally during end-to-end validation.
+
+Next implementation step:
+
+    Deploy testedcloud-chat-events-api to Cloud Run.
+
+Target next flow:
+
+    Android app or test client
+    -> Cloud Run testedcloud-chat-events-api
+    -> Pub/Sub testedcloud-chat-events
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events

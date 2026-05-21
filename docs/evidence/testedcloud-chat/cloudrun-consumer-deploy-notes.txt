@@ -1,0 +1,195 @@
+TestedCloud Chat — Cloud Run Consumer Deployment Notes
+
+Date: May 21, 2026
+Scope: Cloud Run consumer deployment, Pub/Sub push subscription, IAM, Artifact Registry build permissions, and BigQuery target validation
+
+Summary
+-------
+
+The TestedCloud Chat analytics consumer was deployed to Cloud Run and connected to Pub/Sub using an authenticated push subscription.
+
+Validated end-to-end flow:
+
+    TestedCloud Chat collector local
+    -> Pub/Sub testedcloud-chat-events
+    -> Pub/Sub push subscription testedcloud-chat-consumer-sub
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
+
+Cloud Project
+-------------
+
+Project:
+
+    majestic-layout-255620
+
+Region:
+
+    us-central1
+
+Cloud Run Consumer
+------------------
+
+Service:
+
+    testedcloud-chat-consumer
+
+Validated revision:
+
+    testedcloud-chat-consumer-00003-sqq
+
+Service URL:
+
+    https://testedcloud-chat-consumer-hry4rawqia-uc.a.run.app
+
+Runtime service account:
+
+    testedcloud-chat-consumer-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+Authentication:
+
+    Private service
+    No unauthenticated access
+
+Deployment flag:
+
+    --no-allow-unauthenticated
+
+Health check result:
+
+    HTTP/2 200
+
+Health response summary:
+
+    health: healthy
+    service: testedcloud-chat-consumer
+    version: 0.1.0
+    target: majestic-layout-255620.testedcloud_chat.events
+
+Pub/Sub Push Configuration
+--------------------------
+
+Topic:
+
+    testedcloud-chat-events
+
+Push subscription:
+
+    testedcloud-chat-consumer-sub
+
+Push endpoint:
+
+    https://testedcloud-chat-consumer-hry4rawqia-uc.a.run.app/
+
+Push authentication service account:
+
+    tc-chat-ps-invoker@majestic-layout-255620.iam.gserviceaccount.com
+
+Cloud Run Invoker permission:
+
+    roles/run.invoker on testedcloud-chat-consumer
+
+OIDC Token Creator permission:
+
+    roles/iam.serviceAccountTokenCreator granted to Pub/Sub service agent on tc-chat-ps-invoker
+
+Pub/Sub service agent:
+
+    service-644725546932@gcp-sa-pubsub.iam.gserviceaccount.com
+
+Dead Letter Queue
+-----------------
+
+DLQ topic:
+
+    testedcloud-chat-events-dlq
+
+Max delivery attempts:
+
+    5
+
+Retry policy:
+
+    minimumBackoff: 10s
+    maximumBackoff: 60s
+
+Subscription state:
+
+    ACTIVE
+
+BigQuery Target
+---------------
+
+Dataset:
+
+    testedcloud_chat
+
+Table:
+
+    events
+
+Fully qualified table:
+
+    majestic-layout-255620.testedcloud_chat.events
+
+Validated inserted event:
+
+    event_id: 6aa07c6c-c3f2-4d41-b613-8f9890b9a9bf
+    event_type: message_sent
+    user_id: uid_cloudrun_e2e_test
+    conversation_id: conversation_cloudrun_e2e_test
+    validation_status: valid
+
+Build and Deployment Notes
+--------------------------
+
+Initial Cloud Run source deployment failed during the build/deploy path.
+
+Root cause:
+
+    The build process used the Compute Engine default service account and required additional permissions to read source artifacts, upload images to Artifact Registry, and write build logs.
+
+Build service account observed:
+
+    644725546932-compute@developer.gserviceaccount.com
+
+Permissions added for build/deploy:
+
+    roles/storage.objectViewer
+    roles/artifactregistry.writer
+    roles/logging.logWriter
+
+After adding these permissions, manual Cloud Build succeeded and pushed the image to Artifact Registry.
+
+Image used for deployment:
+
+    us-central1-docker.pkg.dev/majestic-layout-255620/cloud-run-source-deploy/testedcloud-chat-consumer:manual-test
+
+Important Runtime Note
+----------------------
+
+The Compute Engine default service account was used only by the build/deploy path.
+
+The Cloud Run runtime service account remains:
+
+    testedcloud-chat-consumer-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+This runtime service account is responsible for writing events into BigQuery.
+
+Validation Result
+-----------------
+
+Cloud Run consumer deployment validation result:
+
+    PASS
+
+End-to-end analytics validation result:
+
+    PASS
+
+Validated flow:
+
+    Collector local
+    -> Pub/Sub
+    -> Cloud Run private consumer
+    -> BigQuery

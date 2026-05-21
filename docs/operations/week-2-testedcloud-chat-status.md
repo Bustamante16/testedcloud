@@ -155,3 +155,49 @@ Candidate events:
 - conversation_created
 - conversation_deleted_for_user
 - conversation_reactivated_by_message
+
+## Cloud Analytics Pipeline Milestone
+
+The TestedCloud Chat analytics pipeline was extended beyond local analytics and validated through the central TestedCloud GCP project.
+
+Validated flow:
+
+    TestedCloud Chat collector local
+    -> Pub/Sub testedcloud-chat-events
+    -> Pub/Sub push subscription testedcloud-chat-consumer-sub
+    -> Cloud Run testedcloud-chat-consumer
+    -> BigQuery testedcloud_chat.events
+
+Completed cloud resources:
+
+- Pub/Sub topic: testedcloud-chat-events
+- Pub/Sub dead-letter topic: testedcloud-chat-events-dlq
+- BigQuery dataset: testedcloud_chat
+- BigQuery table: events
+- Cloud Run service: testedcloud-chat-consumer
+- Runtime service account: testedcloud-chat-consumer-sa
+- Pub/Sub push invoker service account: tc-chat-ps-invoker
+- Push subscription: testedcloud-chat-consumer-sub
+
+Validation result:
+
+    PASS
+
+Validated test event:
+
+    event_type: message_sent
+    user_id: uid_cloudrun_e2e_test
+    conversation_id: conversation_cloudrun_e2e_test
+    validation_status: valid
+
+Current pipeline status:
+
+    Collector local -> Pub/Sub -> Cloud Run consumer -> BigQuery is operational.
+
+Remaining work:
+
+- Deploy testedcloud-chat-events-api collector to Cloud Run.
+- Add Firebase ID token validation to the collector.
+- Add Android HTTP analytics repository.
+- Send real TestedCloud Chat Android analytics events to the cloud collector.
+- Build BigQuery views and Looker Studio dashboard.
