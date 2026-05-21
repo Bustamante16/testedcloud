@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from firebase_admin import auth as firebase_auth
+from firebase_admin import initialize_app
 from google.cloud import pubsub_v1
 from pydantic import BaseModel, Field
 
@@ -19,7 +21,19 @@ GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "")
 PUBSUB_TOPIC_ID = os.getenv("PUBSUB_TOPIC_ID", "")
 PUBSUB_ENABLED = os.getenv("PUBSUB_ENABLED", "false").lower() == "true"
 
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
+FIREBASE_TOKEN_VALIDATION_ENABLED = (
+    os.getenv("FIREBASE_TOKEN_VALIDATION_ENABLED", "false").lower() == "true"
+)
+
 publisher = pubsub_v1.PublisherClient() if PUBSUB_ENABLED else None
+
+firebase_app = None
+if FIREBASE_TOKEN_VALIDATION_ENABLED:
+    if not FIREBASE_PROJECT_ID:
+        raise RuntimeError("FIREBASE_PROJECT_ID is required when Firebase token validation is enabled")
+
+    firebase_app = initialize_app(options={"projectId": FIREBASE_PROJECT_ID})
 
 
 class AnalyticsEvent(BaseModel):
@@ -152,6 +166,83 @@ def validate_event(event: AnalyticsEvent) -> None:
 
 
 
+
+def validate_firebase_authorization(
+    authorization: Optional[str],
+    event: AnalyticsEvent,
+) -> Dict[str, Any]:
+    if not FIREBASE_TOKEN_VALIDATION_ENABLED:
+        return {
+            "enabled": False,
+            "uid": None,
+        }
+
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "accepted": False,
+                "error": "missing_authorization_header",
+            },
+        )
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "accepted": False,
+                "error": "invalid_authorization_header",
+                "expected": "Bearer <Firebase ID token>",
+            },
+        )
+
+    token = authorization.replace("Bearer ", "", 1).strip()
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "accepted": False,
+                "error": "missing_bearer_token",
+            },
+        )
+
+    try:
+        decoded_token = firebase_auth.verify_id_token(token, app=firebase_app)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "accepted": False,
+                "error": "firebase_token_verification_failed",
+                "message": str(exc),
+            },
+        ) from exc
+
+    token_uid = decoded_token.get("uid")
+    if not token_uid:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "accepted": False,
+                "error": "firebase_token_missing_uid",
+            },
+        )
+
+    if token_uid != event.user_id:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "accepted": False,
+                "error": "firebase_uid_mismatch",
+            },
+        )
+
+    return {
+        "enabled": True,
+        "uid": token_uid,
+    }
+
+
 def event_to_payload(event: AnalyticsEvent, received_at: str) -> Dict[str, Any]:
     return {
         "event_id": event.event_id,
@@ -220,14 +311,19 @@ def health() -> Dict[str, Any]:
         "pubsub_enabled": PUBSUB_ENABLED,
         "pubsub_topic": PUBSUB_TOPIC_ID if PUBSUB_ENABLED else None,
         "gcp_project": GCP_PROJECT_ID if PUBSUB_ENABLED else None,
-        "firebase_token_validation_enabled": False,
+        "firebase_token_validation_enabled": FIREBASE_TOKEN_VALIDATION_ENABLED,
+        "firebase_project_id": FIREBASE_PROJECT_ID if FIREBASE_TOKEN_VALIDATION_ENABLED else None,
         "timestamp": utc_now_iso(),
     }
 
 
 @app.post("/events")
-def collect_event(event: AnalyticsEvent) -> Dict[str, Any]:
+def collect_event(
+    event: AnalyticsEvent,
+    authorization: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
     validate_event(event)
+    auth_context = validate_firebase_authorization(authorization, event)
 
     received_at = utc_now_iso()
     message_id = publish_event(event, received_at)
@@ -240,5 +336,7 @@ def collect_event(event: AnalyticsEvent) -> Dict[str, Any]:
         "pubsub_published": PUBSUB_ENABLED,
         "pubsub_message_id": message_id if PUBSUB_ENABLED else None,
         "topic": PUBSUB_TOPIC_ID if PUBSUB_ENABLED else None,
+        "firebase_token_validation_enabled": FIREBASE_TOKEN_VALIDATION_ENABLED,
+        "authenticated_uid": auth_context.get("uid"),
         "received_at": received_at,
     }

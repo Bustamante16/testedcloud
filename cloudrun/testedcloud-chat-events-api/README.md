@@ -100,3 +100,23 @@ When Pub/Sub is enabled, POST /events publishes validated events to:
 Current recommended service account for Cloud Run:
 
     testedcloud-chat-events-api-sa@majestic-layout-255620.iam.gserviceaccount.com
+
+
+## Firebase ID Token Validation
+
+Firebase ID token validation can be enabled with:
+
+    FIREBASE_TOKEN_VALIDATION_ENABLED=true
+    FIREBASE_PROJECT_ID=majestic-layout-255620-b88b2
+
+When enabled, POST /events requires:
+
+    Authorization: Bearer <Firebase ID token>
+
+The collector verifies:
+
+    token.uid == event.user_id
+
+Current MVP deployment can keep validation disabled until Android HTTP integration is ready:
+
+    FIREBASE_TOKEN_VALIDATION_ENABLED=false
